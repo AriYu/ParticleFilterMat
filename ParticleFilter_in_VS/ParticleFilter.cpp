@@ -240,23 +240,34 @@ void ParticleFilterMat::Sampling(double input)
 {
 	static random_device rdev;
 	static mt19937 engine(rdev());
+	
 
-	// 状態遷移
-	for (int i = 0; i < _samples; i++){
-		filtered_particles[i]._state
-			= ((_A * predict_particles[i]._state) + (_B * input));
-		filtered_particles[i]._weight = predict_particles[i]._weight;
-	}
 	// ノイズを加える
 	for (int j = 0; j < _dimX; j++)
 	{
 		normal_distribution<> sigma(_ProcessNoiseMean.at<double>(j, 0)
 			, _ProcessNoiseCov.at<double>(j, 0));
 		for (int i = 0; i < _samples; i++){
-			filtered_particles[i]._state.at<double>(j, 0)
+			predict_particles[i]._state.at<double>(j, 0)
 				+= sigma(engine);
 		}
 	}
+	// 状態遷移
+	for (int i = 0; i < _samples; i++){
+		filtered_particles[i]._state
+			= ((_A * predict_particles[i]._state) + (_B * input));
+		filtered_particles[i]._weight = predict_particles[i]._weight;
+	}
+	//// ノイズを加える
+	//for (int j = 0; j < _dimX; j++)
+	//{
+	//	normal_distribution<> sigma(_ProcessNoiseMean.at<double>(j, 0)
+	//		, _ProcessNoiseCov.at<double>(j, 0));
+	//	for (int i = 0; i < _samples; i++){
+	//		filtered_particles[i]._state.at<double>(j, 0)
+	//		+= sigma(engine);
+	//	}
+	//}
 }
 
 void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
@@ -371,7 +382,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 		cout << "[Resampled] ESS : " << ESS << " / " << _samples / ESSth << endl;
 
 		// -------------- prSystematic --------------
-		int i = 0;
+		/*int i = 0;
 		double c = filtered_particles[0]._weight;
 		double r = dist(engine) / (double)_samples;
 		for (int m = 0; m < _samples; m++){
@@ -382,51 +393,53 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 			}
 			predict_particles[m]._state = filtered_particles[i]._state;
 			predict_particles[m]._weight = mean;
-		}
+		}*/
+		//---------------------------------------------------
 
 		// -------------- prMultinomial --------------
-		//vector<double> linW(_samples, 0);
-		//double linW_SUM = 0.0;
-		//for (int i = 0; i < _samples; i++){
-		//	linW_SUM += filtered_particles[i]._weight;
-		//}
-		//// Normalize weights:
-		//assert(linW_SUM > 0);
-		//for (int i = 0; i < _samples; i++){
-		//	linW[i] *= 1.0 / linW_SUM;
-		//}
-		//vector<double> Q(_samples);//累積重み
-		//{
-		//	double last = 0.0;
-		//	const size_t N = linW.size();
-		//	for (size_t i = 0; i < N; i++){
-		//		last = Q[i] = last + filtered_particles[i]._weight;
-		//	}
-		//}
-		//Q[_samples - 1] = 1.1;
-		//vector<double> T(_samples);
-		//std::uniform_real_distribution<> rndm(0.0, 0.999999);
-		//for (int i = 0; i < _samples; i++){
-		//	T[i] = rndm(engine);
-		//}
-		//T.push_back(1.0);
-		//sort(T.begin(), T.end());
-		//int i = 0;
-		//int j = 0;
-		//while (i < _samples)
-		//{
-		//	if (T[i] < Q[j]){
-		//		predict_particles[i]._state = filtered_particles[j]._state;
-		//		predict_particles[i]._weight = mean;
-		//		i++;
-		//	}
-		//	else{
-		//		j++;
-		//		if (j >= _samples){
-		//			j = _samples - 1;
-		//		}
-		//	}
-		//}
+		vector<double> linW(_samples, 0);
+		double linW_SUM = 0.0;
+		for (int i = 0; i < _samples; i++){
+			linW_SUM += filtered_particles[i]._weight;
+		}
+		// Normalize weights:
+		assert(linW_SUM > 0);
+		for (int i = 0; i < _samples; i++){
+			linW[i] *= 1.0 / linW_SUM;
+		}
+		vector<double> Q(_samples);//累積重み
+		{
+			double last = 0.0;
+			const size_t N = linW.size();
+			for (size_t i = 0; i < N; i++){
+				last = Q[i] = last + filtered_particles[i]._weight;
+			}
+		}
+		Q[_samples - 1] = 1.1;
+		vector<double> T(_samples);
+		std::uniform_real_distribution<> rndm(0.0, 0.999999);
+		for (int i = 0; i < _samples; i++){
+			T[i] = rndm(engine);
+		}
+		T.push_back(1.0);
+		sort(T.begin(), T.end());
+		int i = 0;
+		int j = 0;
+		while (i < _samples)
+		{
+			if (T[i] < Q[j]){
+				predict_particles[i]._state = filtered_particles[j]._state;
+				predict_particles[i]._weight = mean;
+				i++;
+			}
+			else{
+				j++;
+				if (j >= _samples){
+					j = _samples - 1;
+				}
+			}
+		}
+		//---------------------------------------------------------
 	}
 	else{ // do not resampling
 		for (int i = 0; i < _samples; i++){
