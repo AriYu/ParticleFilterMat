@@ -240,23 +240,34 @@ void ParticleFilterMat::Sampling(double input)
 {
 	static random_device rdev;
 	static mt19937 engine(rdev());
+	
 
-	// 状態遷移
-	for (int i = 0; i < _samples; i++){
-		filtered_particles[i]._state
-			= ((_A * predict_particles[i]._state) + (_B * input));
-		filtered_particles[i]._weight = predict_particles[i]._weight;
-	}
 	// ノイズを加える
 	for (int j = 0; j < _dimX; j++)
 	{
 		normal_distribution<> sigma(_ProcessNoiseMean.at<double>(j, 0)
 			, _ProcessNoiseCov.at<double>(j, 0));
 		for (int i = 0; i < _samples; i++){
-			filtered_particles[i]._state.at<double>(j, 0)
+			predict_particles[i]._state.at<double>(j, 0)
 				+= sigma(engine);
 		}
 	}
+	// 状態遷移
+	for (int i = 0; i < _samples; i++){
+		filtered_particles[i]._state
+			= ((_A * predict_particles[i]._state) + (_B * input));
+		filtered_particles[i]._weight = predict_particles[i]._weight;
+	}
+	//// ノイズを加える
+	//for (int j = 0; j < _dimX; j++)
+	//{
+	//	normal_distribution<> sigma(_ProcessNoiseMean.at<double>(j, 0)
+	//		, _ProcessNoiseCov.at<double>(j, 0));
+	//	for (int i = 0; i < _samples; i++){
+	//		filtered_particles[i]._state.at<double>(j, 0)
+	//		+= sigma(engine);
+	//	}
+	//}
 }
 
 void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
@@ -371,18 +382,19 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 		cout << "[Resampled] ESS : " << ESS << " / " << _samples / ESSth << endl;
 
 		// -------------- prSystematic --------------
-		//int i = 0;
-		//double c = filtered_particles[0]._weight;
-		//double r = dist(engine) / (double)_samples;
-		//for (int m = 0; m < _samples; m++){
-		//	double U = r + ((double)m) * mean;
-		//	while (U > c){
-		//		i = i + 1;
-		//		c = c + filtered_particles[i]._weight;
-		//	}
-		//	predict_particles[m]._state = filtered_particles[i]._state;
-		//	predict_particles[m]._weight = mean;
-		//}
+		/*int i = 0;
+		double c = filtered_particles[0]._weight;
+		double r = dist(engine) / (double)_samples;
+		for (int m = 0; m < _samples; m++){
+			double U = r + ((double)m) * mean;
+			while (U > c){
+				i = i + 1;
+				c = c + filtered_particles[i]._weight;
+			}
+			predict_particles[m]._state = filtered_particles[i]._state;
+			predict_particles[m]._weight = mean;
+		}*/
+		//---------------------------------------------------
 
 		// -------------- prMultinomial --------------
 		vector<double> linW(_samples, 0);
@@ -427,6 +439,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 				}
 			}
 		}
+		//---------------------------------------------------------
 	}
 	else{ // do not resampling
 		for (int i = 0; i < _samples; i++){
