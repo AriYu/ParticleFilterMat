@@ -72,7 +72,7 @@ public :
 	
 	//! observed : ŠÏ‘ª’l
 	virtual void CalcLikehood(double input, cv::Mat observed);
-	virtual void CalcLikelihood(void(*obsmodel)(cv::Mat &z, const cv::Mat &x),
+	virtual void CalcLikelihood(void(*obsmodel)(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd),
 								double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov),
 								const cv::Mat &observed);
 

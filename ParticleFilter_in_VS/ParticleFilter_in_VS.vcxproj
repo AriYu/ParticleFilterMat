@@ -87,7 +87,7 @@
     <ClCompile Include="KalmanFilter.cpp" />
     <ClCompile Include="ParticleFilter.cpp" />
     <ClCompile Include="RootMeanSquareError.cpp" />
-    <ClCompile Include="test_PFM4.cpp" />
+    <ClCompile Include="test_PFM5.cpp" />
     <ClCompile Include="TimeCheck.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -95,6 +95,7 @@
     <None Include="plot.plt" />
     <None Include="plot2.plt" />
     <None Include="plot3.plt" />
+    <None Include="plot4.plt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EPViterbiMAP.h" />

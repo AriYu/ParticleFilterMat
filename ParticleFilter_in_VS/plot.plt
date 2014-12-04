@@ -1,5 +1,10 @@
-#角度のみをプロット
+#角度誤差のみをプロット
 #plot "result.dat" u 1 w lines t "kalman(Angle)", "result.dat" u 2 w lines t "PF(MMSE)(Angle)"#,"result.dat" u 4 w lines t "PF(ML)","result.dat" u 3 w points t "Meas", 
+plot "result.dat" u 3 w points t "Meas","result.dat" u 1 w lines t "kalman(Angle)", "result.dat" u 2 w lines t "PF(MMSE)(Angle)"#,"result.dat" u 4 w lines t "PF(ML)",, 
+pause -1 "press [Enter] key or [OK] button to quit"
+#角速度誤差のみをプロット
+plot "result.dat" u 5 w lines t "kalman(Acc)", "result.dat" u 6 w lines t "PF(MMSE)(Acc)"
+pause -1 "press [Enter] key or [OK] button to quit"
 #角速度のみをプロット
 plot "result.dat" u 7 w lines t "true(Acc)","result.dat" u 8 w lines t "kalman(Acc)", "result.dat" u 9 w lines t "PF(MMSE)(Acc)"
 pause -1 "press [Enter] key or [OK] button to quit"

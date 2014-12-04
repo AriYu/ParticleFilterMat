@@ -48,9 +48,9 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 }
 //-------------------------
 // Observation Equation
-void observation(cv::Mat &z, const cv::Mat &x)
+void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
-	z.at<double>(0, 0) = x.at<double>(0, 0);
+	z.at<double>(0, 0) = x.at<double>(0, 0) + rnd.at<double>(0, 0);
 	z.at<double>(1, 0) = 0.0;
 }
 //-----------------------------------------------------
@@ -63,6 +63,7 @@ double likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov)
 		e = z.at<double>(i,0) - zhat.at<double>(i,0);
 		double tmp = exp((-pow(e, 2.0) / (2.0*cov.at<double>(i, 0))));
 		tmp = tmp / sqrt(2.0*CV_PI*cov.at<double>(i, 0));
+		//double tmp = 1.5 * pow(1.0 + ((e*e) / 10.0), -5.5);
 		prod += tmp;
 	}
 	return prod;
@@ -99,7 +100,7 @@ int main(void) {
 	std::cout << "ProcessMean=" << ProcessMean << std::endl << std::endl;
 	pfm.SetProcessNoise(ProcessCov, ProcessMean);
 
-	cv::Mat ObsCov = (cv::Mat_<double>(2, 1) << sqrt(1e-1), sqrt(1e-1));
+	cv::Mat ObsCov = (cv::Mat_<double>(2, 1) << sqrt(1), sqrt(1));
 	std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
 	cv::Mat ObsMean = (cv::Mat_<double>(2, 1) << 0.0, 0.0);
 	std::cout << "ObsMean=" << ObsMean << std::endl << std::endl;
@@ -126,7 +127,7 @@ int main(void) {
 		setIdentity(KF.measurementMatrix);
 		cout << "KF.measurementMatrix" << KF.measurementMatrix << endl;
 		setIdentity(KF.processNoiseCov, Scalar::all(1e-5));
-		setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));
+		setIdentity(KF.measurementNoiseCov, Scalar::all(1));
 		setIdentity(KF.errorCovPost, Scalar::all(1));
 
 		randn(KF.statePost, Scalar::all(0), Scalar::all(0.1));

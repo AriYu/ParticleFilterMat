@@ -277,13 +277,16 @@ void ParticleFilterMat::Sampling(
 	static random_device rdev;
 	static mt19937 engine(rdev());
 
-	cv::Mat rnd_num = cv::Mat_<double>(_dimX, 1);
-
+	//cv::Mat rnd_num = cv::Mat_<double>(_dimX, 1);
+	cv::Mat rnd_num = filtered_particles[0]._state.clone();
+	
 	for (int i = 0; i < _samples; i++){
-		for (int j = 0; j < _dimX; j++){
-			normal_distribution<> sigma(_ProcessNoiseMean.at<double>(j, 0)
-				, _ProcessNoiseCov.at<double>(j, 0));
-			rnd_num.at<double>(j, 0) = sigma(engine);
+		for (int r = 0; r < rnd_num.rows; ++r){
+			for (int c = 0; c < rnd_num.cols; ++c){
+				normal_distribution<> sigma(_ProcessNoiseMean.at<double>(r, c)
+					, _ProcessNoiseCov.at<double>(r, c));
+				rnd_num.at<double>(r, c) = sigma(engine);
+			}
 		}
 		processmodel(
 			filtered_particles[i]._state,
@@ -354,15 +357,24 @@ void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
 
 
 void ParticleFilterMat::CalcLikelihood(
-	void(*obsmodel)(cv::Mat &z, const  cv::Mat &x),
+	void(*obsmodel)(cv::Mat &z, const  cv::Mat &x, const cv::Mat &rnd),
 	double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov),
 	const cv::Mat &observed)
 {
+	static random_device rdev;
+	static mt19937 engine(rdev());
+
 	double sum = 0;
 	cv::Mat obshat = observed.clone();
+	cv::Mat rnd_num = observed.clone();
 
 	for (int i = 0; i < _samples; i++){
-		obsmodel(obshat, filtered_particles[i]._state);
+		for (int j = 0; j < rnd_num.cols; j++){
+			normal_distribution<> sigma(_ObsNoiseMean.at<double>(j, 0)
+				, _ObsNoiseCov.at<double>(j, 0));
+			rnd_num.at<double>(j, 0) = sigma(engine);
+		}
+		obsmodel(obshat, filtered_particles[i]._state, rnd_num);
 		filtered_particles[i]._weight
 			= filtered_particles[i]._weight*likelihood(observed, obshat, _ObsNoiseCov);
 		sum += filtered_particles[i]._weight;
@@ -401,7 +413,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 	double ESS = 0;
 	double tmp = 0;
 	//double ESSth = (double)_samples / 40.0;
-	double ESSth = 20.0;
+	double ESSth = 100.0;
 	//double ESSth = 16.0;
 	for (int i = 0; i < _samples; i++){
 		tmp += pow(filtered_particles[i]._weight, 2.0);
