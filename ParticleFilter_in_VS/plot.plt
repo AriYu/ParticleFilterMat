@@ -10,7 +10,7 @@ set lmargin at screen 0.20
 set rmargin at screen 0.70
 set bmargin at screen 0.50
 set tmargin at screen 0.90
-plot "result.dat" u 1 w lines t "kalman(Angle)", "result.dat" u 2 w lines t "PF(MMSE)(Angle)"#,"result.dat" u 4 w lines t "PF(ML)","result.dat" u 3 w points t "Meas", 
+plot "result.dat" u 3 w points t "Meas","result.dat" u 1 w lines t "kalman(Angle)", "result.dat" u 2 w lines t "PF(MMSE)(Angle)"#,"result.dat" u 4 w lines t "PF(ML)",, 
 # ----bottom plot -----
 set lmargin at screen 0.20
 set rmargin at screen 0.70

@@ -67,9 +67,14 @@ public :
 	
 	//! delta_t : サンプリング時間, input : 制御入力
 	virtual void Sampling(double input);
+	virtual void Sampling(void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd),
+							const double &input);
 	
 	//! observed : 観測値
 	virtual void CalcLikehood(double input, cv::Mat observed);
+	virtual void CalcLikelihood(void(*obsmodel)(cv::Mat &z, const cv::Mat &x),
+								double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov),
+								const cv::Mat &observed);
 
 	virtual void Resampling(cv::Mat observed);
 

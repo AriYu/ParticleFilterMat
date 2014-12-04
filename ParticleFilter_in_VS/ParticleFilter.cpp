@@ -162,7 +162,7 @@ ParticleFilterMat::ParticleFilterMat(const ParticleFilterMat& x)
 	this->_ObsNoiseMean = x._ObsNoiseMean.clone();
 	this->_isSetProcessNoise = x._isSetProcessNoise;
 	this->_isSetObsNoise = x._isSetObsNoise;
-	
+
 	this->predict_particles.resize(x.predict_particles.size());
 	std::copy(x.predict_particles.begin(),
 		x.predict_particles.end(),
@@ -240,7 +240,7 @@ void ParticleFilterMat::Sampling(double input)
 {
 	static random_device rdev;
 	static mt19937 engine(rdev());
-	
+
 
 	// ノイズを加える
 	for (int j = 0; j < _dimX; j++)
@@ -268,6 +268,30 @@ void ParticleFilterMat::Sampling(double input)
 	//		+= sigma(engine);
 	//	}
 	//}
+}
+
+void ParticleFilterMat::Sampling(
+	void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd),
+	const double &ctrl_input)
+{
+	static random_device rdev;
+	static mt19937 engine(rdev());
+
+	cv::Mat rnd_num = cv::Mat_<double>(_dimX, 1);
+
+	for (int i = 0; i < _samples; i++){
+		for (int j = 0; j < _dimX; j++){
+			normal_distribution<> sigma(_ProcessNoiseMean.at<double>(j, 0)
+				, _ProcessNoiseCov.at<double>(j, 0));
+			rnd_num.at<double>(j, 0) = sigma(engine);
+		}
+		processmodel(
+			filtered_particles[i]._state,
+			predict_particles[i]._state,
+			ctrl_input,
+			rnd_num);
+		filtered_particles[i]._weight = predict_particles[i]._weight;
+	}
 }
 
 void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
@@ -311,7 +335,7 @@ void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
 				cnt += 1.0;
 			}
 		}
-		filtered_particles[i]._weight *= (weightsum/cnt);
+		filtered_particles[i]._weight *= (weightsum / cnt);
 
 		//sum = logsumexp(sum, l[i], (i == 0));
 		sum += filtered_particles[i]._weight;
@@ -324,6 +348,31 @@ void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
 	for (int i = 0; i < _samples; i++)
 	{
 		//filtered_particles[i]._weight = exp(l[i] - sum);
+		filtered_particles[i]._weight = filtered_particles[i]._weight / sum;
+	}
+}
+
+
+void ParticleFilterMat::CalcLikelihood(
+	void(*obsmodel)(cv::Mat &z, const  cv::Mat &x),
+	double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov),
+	const cv::Mat &observed)
+{
+	double sum = 0;
+	cv::Mat obshat = observed.clone();
+
+	for (int i = 0; i < _samples; i++){
+		obsmodel(obshat, filtered_particles[i]._state);
+		filtered_particles[i]._weight
+			= filtered_particles[i]._weight*likelihood(observed, obshat, _ObsNoiseCov);
+		sum += filtered_particles[i]._weight;
+	}
+
+	//====================================
+	// normalize weights
+	//====================================
+	for (int i = 0; i < _samples; i++)
+	{
 		filtered_particles[i]._weight = filtered_particles[i]._weight / sum;
 	}
 }
@@ -351,8 +400,8 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 	double mean = (double)(1.0 / (double)_samples);
 	double ESS = 0;
 	double tmp = 0;
-	double ESSth = (double)_samples / 40.0;
-	//double ESSth = 10.0;
+	//double ESSth = (double)_samples / 40.0;
+	double ESSth = 20.0;
 	//double ESSth = 16.0;
 	for (int i = 0; i < _samples; i++){
 		tmp += pow(filtered_particles[i]._weight, 2.0);
@@ -360,23 +409,23 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 	ESS = 1.0 / tmp;
 
 
-	cv::Mat estimate_state = GetMMSE();
+	/*cv::Mat estimate_state = GetMMSE();
 	cv::Mat estimate_error = estimate_state - observed;
 	for (int ii = 0; ii < estimate_error.rows; ii++)
 	{
-		for (int jj = 0; jj < estimate_error.cols; jj++)
-		{
-			estimate_error.at<double>(ii, jj) = pow(estimate_error.at<double>(ii, jj), 2);
-		}
+	for (int jj = 0; jj < estimate_error.cols; jj++)
+	{
+	estimate_error.at<double>(ii, jj) = pow(estimate_error.at<double>(ii, jj), 2);
+	}
 	}
 	double error_sum = 0;
 	for (int ii = 0; ii < estimate_error.rows; ii++)
 	{
-		for (int jj = 0; jj < estimate_error.cols; jj++)
-		{
-			error_sum += estimate_error.at<double>(ii, jj);
-		}
+	for (int jj = 0; jj < estimate_error.cols; jj++)
+	{
+	error_sum += estimate_error.at<double>(ii, jj);
 	}
+	}*/
 
 	if ((ESS < (_samples / ESSth)) /*&& error_sum < 2.0*/){ // do resampling
 		cout << "[Resampled] ESS : " << ESS << " / " << _samples / ESSth << endl;

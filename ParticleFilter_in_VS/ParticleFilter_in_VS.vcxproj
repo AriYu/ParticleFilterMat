@@ -87,7 +87,7 @@
     <ClCompile Include="KalmanFilter.cpp" />
     <ClCompile Include="ParticleFilter.cpp" />
     <ClCompile Include="RootMeanSquareError.cpp" />
-    <ClCompile Include="test_PFM.cpp" />
+    <ClCompile Include="test_PFM4.cpp" />
     <ClCompile Include="TimeCheck.cpp" />
   </ItemGroup>
   <ItemGroup>
