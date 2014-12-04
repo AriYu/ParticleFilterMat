@@ -14,46 +14,34 @@
 #include "ParticleFilter.h"
 //#include "KalmanFilter.h"
 
-#define	DATAOUTPUT
+#define	PARTICLE_IO
 
-#define NumOfParticle	1024
-#define NumOfIterate	500
-
-#define STATE_EQN_MODE	2
-#define OBS_EQN_MODE	STATE_EQN_MODE
-
-#define SAMPLING_TIME	0.01
-#define TIME_CONSTANT	1.0
-
-#define SYSTEM_GAIN		1.0
-#define STEP_GAIN		1.0
-
-#define LOOP			20
+#define NumOfParticle	100
 
 using namespace std;
 using namespace cv;
 
-double k = 0.0;
-double T = 100.0;
+double k = 0.0;			//! loop count
+const double T = 10.0; //! loop limit
 
 //----------------------------
 // Process Equation
 //! x		: state
 //! xpre	: last state
 //! input	: input
-//! rnd : process noise
+//! rnd		: process noise
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
 	double last = xpre.at<double>(0, 0);
 	x.at<double>(0, 0)
-		= 0.5*last + 25.0*last / (1 + last*last) + 8.0 * cos(1.2*k) + rnd.at<double>(0, 0);
+		= 0.5*last + 25.0*last / (1.0 + last*last) + 8.0 * cos(1.2*k) + rnd.at<double>(0, 0);
 }
 //-------------------------
 // Observation Equation
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
 	z.at<double>(0, 0)
-		= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0 + rnd.at<double>(0, 0);
+		= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
 
 }
 //-----------------------------------------------------
@@ -66,7 +54,7 @@ double likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov)
 		e = z.at<double>(i, 0) - zhat.at<double>(i, 0);
 		double tmp = exp((-pow(e, 2.0) / (2.0*cov.at<double>(i, 0))));
 		tmp = tmp / sqrt(2.0*CV_PI*cov.at<double>(i, 0));
-		double tmp = 1.5 * pow(1.0 + ((e*e) / 10.0), -5.5);
+		/*double tmp = 1.5 * pow(1.0 + ((e*e) / 10.0), -5.5);*/
 		prod += tmp;
 	}
 	return prod;
@@ -75,20 +63,19 @@ double likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov)
 
 int main(void) {
 
-	double phi = 0;
-	double delta_phi = 0;
-	double x_old = 0;
-	double y = 0;
-	double input = 0;
-
 	double mmse_estimated = 0;
 
 	ofstream output;         // x, y
 	output.open("result1.dat", ios::out);
 	if (!output.is_open()){ cout << "open result output failed" << endl; return -1; }
 
+#ifdef PARTICLE_IO
+	ofstream particles_file;         // k, x, weight
+	particles_file.open("result_particle.dat", ios::out);
+	if (!particles_file.is_open()){ cout << "open result_particle output failed" << endl; return -1; }
+#endif // PARTICLE_IO
+
 	// set for Particle filter Mat
-	double delta_t = SAMPLING_TIME;
 	cv::Mat A = (cv::Mat_<double>(2, 2) << 1.0, 1.0, 0, 1.0);
 	std::cout << "A=" << A << std::endl << std::endl;
 	cv::Mat B = (cv::Mat_<double>(2, 2) << 0, 0, 0, 0);
@@ -103,7 +90,7 @@ int main(void) {
 	std::cout << "ProcessMean=" << ProcessMean << std::endl << std::endl;
 	pfm.SetProcessNoise(ProcessCov, ProcessMean);
 
-	cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << sqrt(1));
+	cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << sqrt(10));
 	std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
 	cv::Mat ObsMean = (cv::Mat_<double>(1, 1) << 0.0);
 	std::cout << "ObsMean=" << ObsMean << std::endl << std::endl;
@@ -125,38 +112,33 @@ int main(void) {
 	Mat measurementNoise = Mat::zeros(1, 1, CV_64F);
 	char code = (char)-1;
 
-	for (k = 0; k < T; ++k){
+	for (k = 0; k < T; k+=1.0){
 		cout << "k==" << k << endl;
 		if (k == 0){
-			//randn(last_state, Scalar::all(0), Scalar::all(1.0));
 			last_state.at<double>(0, 0) = 0.1;
 		}
 		// 真値を生成
 		double input = 0.0;
 		randn(processNoise, Scalar(0), Scalar::all(sqrt(ProcessCov.at<double>(0, 0))));
-		//cout << "Generate processNoise." << endl;
 		process(state, last_state, input, processNoise);
-		/*cout << "state=" << endl; cout << state << endl;
-		cout << "last_state=" << endl; cout << last_state << endl;
-		cout << "input=" << endl; cout << input << endl;
-		cout << "processNoise=" << endl;  cout << processNoise << endl;*/
-		//cout << "Generate real state." << endl;
 
 		// 観測値を生成
 		randn(measurementNoise, Scalar::all(0), Scalar::all(ObsCov.at<double>(0)));
-		//cout << "Generate measurementNoise." << endl;
 		observation(measurement, state, measurementNoise);
-		//cout << "Generate measurement." << endl;
+		measurement += measurementNoise;
 
 		// Particle Filter
 		pfm.Sampling(process, input);
-		//cout << "[pfm]Sampling step." << endl;
 		pfm.CalcLikelihood(observation, likelihood, measurement);
-		//cout << "[pfm]Calculation likelihood step." << endl;
+
+#ifdef PARTICLE_IO
+		for (int i = 0; i < pfm._samples; i++){
+			particles_file << k << " " << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " << pfm.filtered_particles[i]._weight << endl;
+		}
+#endif // PARTICLE_IO
 
 		Mat predictionPF = pfm.GetMMSE();
 		double predict_x_pf = predictionPF.at<double>(0, 0);
-		//cout << "predict_x_PF : " << predict_x_pf << endl;
 
 		// 推定値を保存
 		output << state.at<double>(0, 0) << " "		// [1] true state
@@ -166,7 +148,6 @@ int main(void) {
 		last_state = state;
 
 		pfm.Resampling(measurement);
-		//cout << "[pfm]Resampling step." << endl;
 	}
 
 	output.close();

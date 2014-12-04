@@ -412,8 +412,8 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 	double mean = (double)(1.0 / (double)_samples);
 	double ESS = 0;
 	double tmp = 0;
-	//double ESSth = (double)_samples / 40.0;
-	double ESSth = 100.0;
+	double ESSth = (double)_samples / 40.0;
+	//double ESSth = 100.0;
 	//double ESSth = 16.0;
 	for (int i = 0; i < _samples; i++){
 		tmp += pow(filtered_particles[i]._weight, 2.0);
