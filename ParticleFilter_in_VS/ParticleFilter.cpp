@@ -377,6 +377,7 @@ void ParticleFilterMat::CalcLikelihood(
 		obsmodel(obshat, filtered_particles[i]._state, rnd_num);
 		filtered_particles[i]._weight
 			= filtered_particles[i]._weight*likelihood(observed, obshat, _ObsNoiseCov);
+		
 		sum += filtered_particles[i]._weight;
 	}
 
@@ -390,7 +391,7 @@ void ParticleFilterMat::CalcLikelihood(
 }
 
 /*
-///////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------
 // ESS(Effective sample size)について
 // 例）
 // すべてのパーティクルの重みが均等だった場合：
@@ -400,9 +401,7 @@ void ParticleFilterMat::CalcLikelihood(
 // つまり、ESSが小さいほどパーティクルがよく推定できていることを示す。
 // よく推定できているときだけリサンプリングを行って尤度の高いパーティクルを
 // 増やす操作を行う。
-///////////////////////////////////////////////////////////////////////////////
-// 多分リサンプリングがおかしいので確認する。
-// 他のアルゴリズムとかも試してみる。
+//----------------------------------------------------------------------------
 */
 void ParticleFilterMat::Resampling(cv::Mat observed)
 {
@@ -419,7 +418,6 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 		tmp += pow(filtered_particles[i]._weight, 2.0);
 	}
 	ESS = 1.0 / tmp;
-
 
 	/*cv::Mat estimate_state = GetMMSE();
 	cv::Mat estimate_error = estimate_state - observed;

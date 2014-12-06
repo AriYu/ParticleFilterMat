@@ -12,17 +12,19 @@
 #include <opencv2/video/tracking.hpp>
 
 #include "ParticleFilter.h"
+#include "RootMeanSquareError.h"
+
 //#include "KalmanFilter.h"
 
-#define	PARTICLE_IO
+//#define	PARTICLE_IO
 
-#define NumOfParticle	100
+#define NumOfParticle	1000
 
 using namespace std;
 using namespace cv;
 
 double k = 0.0;			//! loop count
-const double T = 10.0; //! loop limit
+const double T = 200.0; //! loop limit
 
 //----------------------------
 // Process Equation
@@ -90,13 +92,13 @@ int main(void) {
 	std::cout << "ProcessMean=" << ProcessMean << std::endl << std::endl;
 	pfm.SetProcessNoise(ProcessCov, ProcessMean);
 
-	cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << sqrt(10));
+	cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << sqrt(1.0));
 	std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
 	cv::Mat ObsMean = (cv::Mat_<double>(1, 1) << 0.0);
 	std::cout << "ObsMean=" << ObsMean << std::endl << std::endl;
 	pfm.SetObservationNoise(ObsCov, ObsMean);
 
-	cv::Mat initCov = (cv::Mat_<double>(1, 1) << 0.1);
+	cv::Mat initCov = (cv::Mat_<double>(1, 1) << sqrt(5.0));
 	std::cout << "initCov=" << initCov << std::endl << std::endl;
 	cv::Mat initMean = (cv::Mat_<double>(1, 1) << 0.0);
 	std::cout << "initMean=" << initMean << std::endl << std::endl;
@@ -111,6 +113,8 @@ int main(void) {
 	Mat measurement = Mat::zeros(1, 1, CV_64F);
 	Mat measurementNoise = Mat::zeros(1, 1, CV_64F);
 	char code = (char)-1;
+
+	RMSE mmse_rmse;
 
 	for (k = 0; k < T; k+=1.0){
 		cout << "k==" << k << endl;
@@ -137,8 +141,12 @@ int main(void) {
 		}
 #endif // PARTICLE_IO
 
+		// Get Estimation
 		Mat predictionPF = pfm.GetMMSE();
 		double predict_x_pf = predictionPF.at<double>(0, 0);
+
+		// for RMSE
+		mmse_rmse.storeData(state.at<double>(0, 0), predict_x_pf);
 
 		// 推定値を保存
 		output << state.at<double>(0, 0) << " "		// [1] true state
@@ -147,8 +155,12 @@ int main(void) {
 
 		last_state = state;
 
+		// リサンプリング
 		pfm.Resampling(measurement);
 	}
+
+	mmse_rmse.calculationRMSE();
+	cout << "RMSE : " << mmse_rmse.getRMSE() << endl;
 
 	output.close();
 
