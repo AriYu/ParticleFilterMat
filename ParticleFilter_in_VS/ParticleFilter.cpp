@@ -202,7 +202,7 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 	for (int j = 0; j < _dimX; j++)
 	{
 		normal_distribution<> sigma(initMean.at<double>(j, 0)
-			, initCov.at<double>(j, 0));
+			, sqrt(initCov.at<double>(j, 0)));
 		for (int i = 0; i < _samples; i++){
 			filtered_particles[i]._state.at<double>(j, 0)
 				= sigma(engine);
@@ -246,7 +246,7 @@ void ParticleFilterMat::Sampling(double input)
 	for (int j = 0; j < _dimX; j++)
 	{
 		normal_distribution<> sigma(_ProcessNoiseMean.at<double>(j, 0)
-			, _ProcessNoiseCov.at<double>(j, 0));
+			, sqrt(_ProcessNoiseCov.at<double>(j, 0)));
 		for (int i = 0; i < _samples; i++){
 			predict_particles[i]._state.at<double>(j, 0)
 				+= sigma(engine);
@@ -284,10 +284,11 @@ void ParticleFilterMat::Sampling(
 		for (int r = 0; r < rnd_num.rows; ++r){
 			for (int c = 0; c < rnd_num.cols; ++c){
 				normal_distribution<> sigma(_ProcessNoiseMean.at<double>(r, c)
-					, _ProcessNoiseCov.at<double>(r, c));
+					, sqrt(_ProcessNoiseCov.at<double>(r, c)));
 				rnd_num.at<double>(r, c) = sigma(engine);
 			}
 		}
+
 		processmodel(
 			filtered_particles[i]._state,
 			predict_particles[i]._state,
@@ -358,7 +359,7 @@ void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
 
 void ParticleFilterMat::CalcLikelihood(
 	void(*obsmodel)(cv::Mat &z, const  cv::Mat &x, const cv::Mat &rnd),
-	double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov),
+	double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean),
 	const cv::Mat &observed)
 {
 	static random_device rdev;
@@ -371,12 +372,12 @@ void ParticleFilterMat::CalcLikelihood(
 	for (int i = 0; i < _samples; i++){
 		for (int j = 0; j < rnd_num.cols; j++){
 			normal_distribution<> sigma(_ObsNoiseMean.at<double>(j, 0)
-				, _ObsNoiseCov.at<double>(j, 0));
+				, sqrt(_ObsNoiseCov.at<double>(j, 0)));
 			rnd_num.at<double>(j, 0) = sigma(engine);
 		}
 		obsmodel(obshat, filtered_particles[i]._state, rnd_num);
 		filtered_particles[i]._weight
-			= filtered_particles[i]._weight*likelihood(observed, obshat, _ObsNoiseCov);
+			= filtered_particles[i]._weight*likelihood(observed, obshat, _ObsNoiseCov, _ObsNoiseMean);
 		
 		sum += filtered_particles[i]._weight;
 	}
@@ -398,8 +399,8 @@ void ParticleFilterMat::CalcLikelihood(
 //		All Particle weight = 1/N -> ESS = N
 // ある一つのパーティクルの重みが1で他が0の場合：
 //		ESS = 1
-// つまり、ESSが小さいほどパーティクルがよく推定できていることを示す。
-// よく推定できているときだけリサンプリングを行って尤度の高いパーティクルを
+// つまり、ESSが小さいほど縮退が起きている。縮退とはパーティクルが散らばって疎になっている状態。
+// 縮退が起きているときはリサンプリングを行って尤度の高いパーティクルを
 // 増やす操作を行う。
 //----------------------------------------------------------------------------
 */
@@ -411,31 +412,16 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 	double mean = (double)(1.0 / (double)_samples);
 	double ESS = 0;
 	double tmp = 0;
-	double ESSth = (double)_samples / 40.0;
+//	double ESSth = (double)_samples / 40.0;
+	//double ESSth = (double)_samples / 10.0;
 	//double ESSth = 100.0;
-	//double ESSth = 16.0;
+	double ESSth = 16.0;
 	for (int i = 0; i < _samples; i++){
 		tmp += pow(filtered_particles[i]._weight, 2.0);
 	}
 	ESS = 1.0 / tmp;
 
-	/*cv::Mat estimate_state = GetMMSE();
-	cv::Mat estimate_error = estimate_state - observed;
-	for (int ii = 0; ii < estimate_error.rows; ii++)
-	{
-	for (int jj = 0; jj < estimate_error.cols; jj++)
-	{
-	estimate_error.at<double>(ii, jj) = pow(estimate_error.at<double>(ii, jj), 2);
-	}
-	}
-	double error_sum = 0;
-	for (int ii = 0; ii < estimate_error.rows; ii++)
-	{
-	for (int jj = 0; jj < estimate_error.cols; jj++)
-	{
-	error_sum += estimate_error.at<double>(ii, jj);
-	}
-	}*/
+
 
 	if ((ESS < (_samples / ESSth)) /*&& error_sum < 2.0*/){ // do resampling
 		cout << "[Resampled] ESS : " << ESS << " / " << _samples / ESSth << endl;

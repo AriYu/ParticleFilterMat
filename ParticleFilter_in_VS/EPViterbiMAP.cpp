@@ -14,7 +14,11 @@ EPViterbiMat::~EPViterbiMat()
 {
 }
 
-void EPViterbiMat::Initialization(ParticleFilterMat &particle_filter, cv::Mat &observed)
+void EPViterbiMat::Initialization(
+	ParticleFilterMat &particle_filter,
+	void(*obsmodel)(cv::Mat &z, const  cv::Mat &x, const cv::Mat &rnd),
+	double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean),
+	const cv::Mat &observed)
 {
 	double g_yx = 0;
 	double f_xx = 0;
@@ -30,33 +34,24 @@ void EPViterbiMat::Initialization(ParticleFilterMat &particle_filter, cv::Mat &o
 		// calc g(y_1 | x_1[i])
 		//=============================================
 		{
-			cv::Mat error
-				= last_particlefilter._C.t() * particle_filter.filtered_particles[i]._state;
-			error = error - last_particlefilter._C.t() * observed;
-			for (int ii = 0; ii < error.rows; ii++){
-				for (int jj = 0; jj < error.cols; jj++){
-					d = pow(error.at<double>(ii, jj), 2);
-					g_yx += -d / (2.0*last_particlefilter._ObsNoiseCov.at<double>(ii, jj))
-						- log(sqrt(2.0*CV_PI*last_particlefilter._ObsNoiseCov.at<double>(ii, jj)));
-				}
-			}
+			cv::Mat obshat = observed.clone();
+			cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
+
+			obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
+			g_yx = log(likelihood(observed, obshat, particle_filter._ObsNoiseCov, particle_filter._ObsNoiseMean));
+			
 		}
-		//=============================================
+		//=============================================q
 		// calc f(x_1[i])
 		//=============================================
 		{
-			cv::Mat error
-				= particle_filter.filtered_particles[i]._state - 0;
-			for (int ii = 0; ii < error.rows; ii++){
-				for (int jj = 0; jj < error.cols; jj++){
-					d = pow(error.at<double>(ii, jj), 2);
-					f_xx += -d / (2.0*last_particlefilter._ProcessNoiseCov.at<double>(ii, jj))
-						- log(sqrt(2.0*CV_PI*last_particlefilter._ProcessNoiseCov.at<double>(ii, jj)));
-				}
-			}
+			cv::Mat est_state
+				= particle_filter.filtered_particles[i]._state;
+			cv::Mat last_state = cv::Mat::zeros(est_state.rows, est_state.cols, CV_64F);
+			f_xx = log(likelihood(est_state, last_state, particle_filter._ProcessNoiseCov, particle_filter._ObsNoiseMean));
 		}
-
-		last_delta[i] = f_xx + g_yx;
+		delta[i] = f_xx + g_yx;
+		last_delta[i] = 0.0;
 		last_particlefilter.predict_particles[i]
 			= particle_filter.predict_particles[i];
 		last_particlefilter.filtered_particles[i]
@@ -66,7 +61,13 @@ void EPViterbiMat::Initialization(ParticleFilterMat &particle_filter, cv::Mat &o
 	_is_inited = true;
 }
 
-void EPViterbiMat::Recursion(ParticleFilterMat &particle_filter, cv::Mat &observed, double &input)
+void EPViterbiMat::Recursion(
+	ParticleFilterMat &particle_filter,
+	void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd),
+	void(*obsmodel)(cv::Mat &z, const  cv::Mat &x, const cv::Mat &rnd),
+	double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean),	
+	const double &ctrl_input,
+	const cv::Mat &observed)
 {
 	double g_yx = 0;
 	double f_xx = 0;
@@ -75,41 +76,34 @@ void EPViterbiMat::Recursion(ParticleFilterMat &particle_filter, cv::Mat &observ
 	double tmp = 0;
 
 	if (!_is_inited){
-		Initialization(particle_filter, observed);
+		Initialization(particle_filter, obsmodel, likelihood, observed);
 	}
 	else
 	{
 		//cout << "[Recursion]" << endl;
 		for (int i = 0; i < particle_filter._samples; i++){
-			
+
 			g_yx = 0;
 			{
-				cv::Mat error
-					= last_particlefilter._C.t() * particle_filter.filtered_particles[i]._state;
-				error = error - last_particlefilter._C.t() * observed;
-				for (int ii = 0; ii < error.rows; ii++){
-					for (int jj = 0; jj < error.cols; jj++){
-						d = pow(error.at<double>(ii, jj), 2);
-						g_yx += -d / (2.0*last_particlefilter._ObsNoiseCov.at<double>(ii, jj))
-							- log(sqrt(2.0*CV_PI*last_particlefilter._ObsNoiseCov.at<double>(ii, jj)));
-					}
-				}
+				cv::Mat obshat = observed.clone();
+				cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
+
+				obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
+				g_yx = log(likelihood(observed, obshat, particle_filter._ObsNoiseCov, particle_filter._ObsNoiseMean));
+				//g_yx = log(particle_filter.filtered_particles[i]._weight);
 			}
 			for (int j = 0; j < particle_filter._samples; j++){
-	
+
 				f_xx = 0;
 				{
-					cv::Mat error1
-						= (last_particlefilter._A*last_particlefilter.filtered_particles[i]._state)
-						+ last_particlefilter._B*input;
-					error1 = error1 - particle_filter.filtered_particles[i]._state; 
-					for (int ii = 0; ii < error1.rows; ii++){
-						for (int jj = 0; jj < error1.cols; jj++){
-							d = pow(error1.at<double>(ii, jj), 2);
-							f_xx += -d / (2.0*last_particlefilter._ProcessNoiseCov.at<double>(ii, jj))
-								- log(sqrt(2.0*CV_PI*last_particlefilter._ProcessNoiseCov.at<double>(ii, jj)));
-						}
-					}
+					cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
+					cv::Mat est_state = particle_filter.filtered_particles[i]._state.clone();
+					processmodel(est_state, last_particlefilter.filtered_particles[j]._state, ctrl_input, rnd_num);
+					f_xx = log(
+						likelihood(est_state,
+						particle_filter.filtered_particles[i]._state,
+						particle_filter._ProcessNoiseCov,
+						particle_filter._ProcessNoiseMean));
 				}
 				if (j == 0){
 					max = last_delta[j] + f_xx;
@@ -136,10 +130,10 @@ cv::Mat EPViterbiMat::GetEstimation()
 {
 	double max = 0;
 	double tmp = 0;
-	
+
 	for (int i = 0; i < last_particlefilter._samples; i++){
 		if (i == 0){
-			max = delta[i];
+			max = delta[0];
 			_it = i;
 		}
 		else{
