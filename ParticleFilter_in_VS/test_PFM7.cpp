@@ -19,7 +19,7 @@
 
 #define	PARTICLE_IO
 
-#define NumOfParticle	100
+#define NumOfParticle	2048
 
 using namespace std;
 using namespace cv;
@@ -194,12 +194,12 @@ int main(void) {
         // ==============================
         //randn(measurementNoise, Scalar::all(0), Scalar::all(sqrt(ObsCov.at<double>(0))));
         first_sensor  = rng.gaussian(sqrt(ObsCov.at<double>(0, 0))) + ObsMean.at<double>(0, 0);
-        second_sensor = rng.gaussian(sqrt(3.0*ObsCov.at<double>(1, 0))) + ObsMean.at<double>(1, 0);
+        second_sensor = rng.gaussian(sqrt(1.0*ObsCov.at<double>(1, 0))) + ObsMean.at<double>(1, 0);
         //observation(measurement, state, measurementNoise);
         measurement.at<double>(0, 0)      = state.at<double>(0, 0);
         measurement.at<double>(1, 0)      = state.at<double>(0, 0);
         measurementNoise.at<double>(0, 0) = first_sensor;
-        measurementNoise.at<double>(1, 0) = second_sensor + 1.0;
+        measurementNoise.at<double>(1, 0) = second_sensor;
         measurement += measurementNoise;
 
         // ==============================
@@ -272,7 +272,7 @@ int main(void) {
     output.close();
 
     //std::system("wgnuplot -persist plot4.plt");
-    std::system("wgnuplot -persist plot5.plt");
+    std::system("gnuplot -persist plot5.plt");
 
     return 0;
 }

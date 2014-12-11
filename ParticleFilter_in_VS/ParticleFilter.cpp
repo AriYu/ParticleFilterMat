@@ -139,7 +139,7 @@ double PFilter::GetMaxWeightX()
 ///////////////////////////////////////////////////
 
 ParticleFilterMat::ParticleFilterMat(cv::Mat A, cv::Mat B, cv::Mat C, int dimX)
-	: _dimX(dimX), _isSetProcessNoise(false), _isSetObsNoise(false)
+    : _dimX(dimX), _isSetProcessNoise(false), _isSetObsNoise(false), _isResampled(true)
 {
 	_A = A.clone();
 	//assert(_A.cols == _dimX);
@@ -406,91 +406,92 @@ void ParticleFilterMat::CalcLikelihood(
 */
 void ParticleFilterMat::Resampling(cv::Mat observed)
 {
-	static random_device rdev;
-	static mt19937 engine(rdev());
-	static std::uniform_real_distribution<> dist(0.0, 1.0);
-	double mean = (double)(1.0 / (double)_samples);
-	double ESS = 0;
-	double tmp = 0;
+    static random_device rdev;
+    static mt19937 engine(rdev());
+    static std::uniform_real_distribution<> dist(0.0, 1.0);
+    double mean = (double)(1.0 / (double)_samples);
+    double ESS = 0;
+    double tmp = 0;
 //	double ESSth = (double)_samples / 40.0;
-	//double ESSth = (double)_samples / 10.0;
-	//double ESSth = 100.0;
-	double ESSth = 16.0;
-	for (int i = 0; i < _samples; i++){
-		tmp += pow(filtered_particles[i]._weight, 2.0);
-	}
-	ESS = 1.0 / tmp;
+    //double ESSth = (double)_samples / 10.0;
+    //double ESSth = 100.0;
+    double ESSth = 16.0;
+    for (int i = 0; i < _samples; i++){
+        tmp += pow(filtered_particles[i]._weight, 2.0);
+    }
+    ESS = 1.0 / tmp;
 
 
 
-	if ((ESS < (_samples / ESSth)) /*&& error_sum < 2.0*/){ // do resampling
-		cout << "[Resampled] ESS : " << ESS << " / " << _samples / ESSth << endl;
+    if ((ESS < (_samples / ESSth)) /*&& error_sum < 2.0*/){ // do resampling
+        cout << "[Resampled] ESS : " << ESS << " / " << _samples / ESSth << endl;
+        _isResampled = true;
+        // -------------- prSystematic --------------
+        /*int i = 0;
+          double c = filtered_particles[0]._weight;
+          double r = dist(engine) / (double)_samples;
+          for (int m = 0; m < _samples; m++){
+          double U = r + ((double)m) * mean;
+          while (U > c){
+          i = i + 1;
+          c = c + filtered_particles[i]._weight;
+          }
+          predict_particles[m]._state = filtered_particles[i]._state;
+          predict_particles[m]._weight = mean;
+          }*/
+        //---------------------------------------------------
 
-		// -------------- prSystematic --------------
-		/*int i = 0;
-		double c = filtered_particles[0]._weight;
-		double r = dist(engine) / (double)_samples;
-		for (int m = 0; m < _samples; m++){
-			double U = r + ((double)m) * mean;
-			while (U > c){
-				i = i + 1;
-				c = c + filtered_particles[i]._weight;
-			}
-			predict_particles[m]._state = filtered_particles[i]._state;
-			predict_particles[m]._weight = mean;
-		}*/
-		//---------------------------------------------------
-
-		// -------------- prMultinomial --------------
-		vector<double> linW(_samples, 0);
-		double linW_SUM = 0.0;
-		for (int i = 0; i < _samples; i++){
-			linW_SUM += filtered_particles[i]._weight;
-		}
-		// Normalize weights:
-		assert(linW_SUM > 0);
-		for (int i = 0; i < _samples; i++){
-			linW[i] *= 1.0 / linW_SUM;
-		}
-		vector<double> Q(_samples);//累積重み
-		{
-			double last = 0.0;
-			const size_t N = linW.size();
-			for (size_t i = 0; i < N; i++){
-				last = Q[i] = last + filtered_particles[i]._weight;
-			}
-		}
-		Q[_samples - 1] = 1.1;
-		vector<double> T(_samples);
-		std::uniform_real_distribution<> rndm(0.0, 0.999999);
-		for (int i = 0; i < _samples; i++){
-			T[i] = rndm(engine);
-		}
-		T.push_back(1.0);
-		sort(T.begin(), T.end());
-		int i = 0;
-		int j = 0;
-		while (i < _samples)
-		{
-			if (T[i] < Q[j]){
-				predict_particles[i]._state = filtered_particles[j]._state;
-				predict_particles[i]._weight = mean;
-				i++;
-			}
-			else{
-				j++;
-				if (j >= _samples){
-					j = _samples - 1;
-				}
-			}
-		}
-		//---------------------------------------------------------
-	}
-	else{ // do not resampling
-		for (int i = 0; i < _samples; i++){
-			predict_particles[i] = filtered_particles[i];
-		}
-	}
+        // -------------- prMultinomial --------------
+        vector<double> linW(_samples, 0);
+        double linW_SUM = 0.0;
+        for (int i = 0; i < _samples; i++){
+            linW_SUM += filtered_particles[i]._weight;
+        }
+        // Normalize weights:
+        assert(linW_SUM > 0);
+        for (int i = 0; i < _samples; i++){
+            linW[i] *= 1.0 / linW_SUM;
+        }
+        vector<double> Q(_samples);//累積重み
+        {
+            double last = 0.0;
+            const size_t N = linW.size();
+            for (size_t i = 0; i < N; i++){
+                last = Q[i] = last + filtered_particles[i]._weight;
+            }
+        }
+        Q[_samples - 1] = 1.1;
+        vector<double> T(_samples);
+        std::uniform_real_distribution<> rndm(0.0, 0.999999);
+        for (int i = 0; i < _samples; i++){
+            T[i] = rndm(engine);
+        }
+        T.push_back(1.0);
+        sort(T.begin(), T.end());
+        int i = 0;
+        int j = 0;
+        while (i < _samples)
+        {
+            if (T[i] < Q[j]){
+                predict_particles[i]._state = filtered_particles[j]._state;
+                predict_particles[i]._weight = mean;
+                i++;
+            }
+            else{
+                j++;
+                if (j >= _samples){
+                    j = _samples - 1;
+                }
+            }
+        }
+        //---------------------------------------------------------
+    }
+    else{ // do not resampling
+        _isResampled = false;
+        for (int i = 0; i < _samples; i++){
+            predict_particles[i] = filtered_particles[i];
+        }
+    }
 }
 
 cv::Mat ParticleFilterMat::GetMMSE()

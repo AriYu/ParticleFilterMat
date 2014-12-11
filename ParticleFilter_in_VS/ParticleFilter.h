@@ -93,6 +93,7 @@ public :
 	bool _isSetObsNoise;
 	int _dimX;	// 状態ベクトルの次元数
 	int _samples; // パーティクルの数
+	bool _isResampled;
 	std::vector< PStateMat > predict_particles;
 	std::vector< PStateMat > filtered_particles;
 };

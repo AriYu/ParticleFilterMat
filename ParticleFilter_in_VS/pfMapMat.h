@@ -23,6 +23,8 @@ public:
 public:
 	ParticleFilterMat last_particlefilter;
 	std::vector<double> map;
+	std::vector<double> p_xx_vec;
+	std::vector<double> p_yx_vec;
 };
 
 #endif // PFMAPMAP_H_

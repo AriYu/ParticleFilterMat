@@ -1,6 +1,6 @@
 #ifndef EP_Viterbi_MAP_H_
 #define EP_Viterbi_MAP_H_
-
+#include <iostream>
 #include "ParticleFilter.h"
 
 class EPViterbiMat
@@ -28,7 +28,10 @@ protected:
 	ParticleFilterMat last_particlefilter;
 	std::vector<double> delta;
 	std::vector<double> last_delta;
+	std::vector<double> g_yx_vec;
+	std::vector<double> f_xx_vec;
 	int _it;
+	std::ofstream epvgm_output;
 };
 
  

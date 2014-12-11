@@ -8,12 +8,21 @@
 reset
 cd "./graph/particles"
 set terminal pdf
-do for[j=0:499]{
+do for[j=0:249]{
 	set output sprintf("particles-%d.pdf",j)
 	plot "../../result_particle.dat" ind j u 2:3 smooth unique w linespoints pt 7 ps 1 t sprintf("particles%d",j)
 	set output
 }
 
 reset
+
+cd "../viterbi"
+set terminal pdf
+do for[j=0:249]{
+	set output sprintf("viterbi-%d.pdf",j)
+	plot "../../epvgm.dat" ind j u 2:3 smooth unique w linespoints pt 7 ps 1 t sprintf("viterbi%d",j)
+	set output
+}
+
 #x1‚Ì‚İ‚ğƒvƒƒbƒg
 #plot "../../result1.dat" u 1 w lines t "true(x1)", "result1.dat" u 2 w lines t "observed(x1)" ,"result1.dat" u 3 w lines t "PF[MMSE](x1)"
