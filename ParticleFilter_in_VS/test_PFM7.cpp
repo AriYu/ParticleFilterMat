@@ -65,7 +65,7 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 //! zhat : êÑíËäœë™íl
 //! cov  : ã§ï™éU
 //! mena : ïΩãœ
-double likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean)
+double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean)
 {
 	double prod = 0.0, e;
 
@@ -78,16 +78,38 @@ double likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, con
 	//	//cout << "prod[" << i << "]:" << prod << endl;
 	//	//cout << endl;
 	//}
-	for (int i = 0; i < z.rows; ++i)
-	{
-		e = z.at<double>(i, 0) - zhat.at<double>(0, 0) - mean.at<double>(i, 0);
-		double tmp = exp((-pow(e, 2.0) / (2.0*cov.at<double>(i, 0))));
-		tmp = tmp / sqrt(2.0*CV_PI*cov.at<double>(i, 0));
+//	for (int i = 0; i < z.rows; ++i)
+//	{
+		e = z.at<double>(0, 0) - zhat.at<double>(0, 0) - mean.at<double>(0, 0);
+		double tmp = exp((-pow(e, 2.0) / (2.0*cov.at<double>(0, 0))));
+		tmp = tmp / sqrt(2.0*CV_PI*cov.at<double>(0, 0));
 		prod += tmp;
 		//cout << "prod[" << i << "]:" << prod << endl;
 		//cout << endl;
-	}
+//	}
 	return prod;
+}
+
+//-----------------------------------------------------
+// Trans Likelihood function
+//! x    : èÛë‘ó 
+//! xhat : êÑíËèÛë‘ó 
+//! cov  : ã§ï™éU
+//! mena : ïΩãœ
+double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &cov, const cv::Mat &mean)
+{
+    double prod = 0.0, e;
+    for (int i = 0; i < 0; ++i)
+    {
+        e = x.at<double>(i, 0) - xhat.at<double>(i, 0) - mean.at<double>(i, 0);
+        double tmp = exp((-pow(e, 2.0) / (2.0*cov.at<double>(i, 0))));
+        tmp = tmp / sqrt(2.0*CV_PI*cov.at<double>(i, 0));
+        prod += tmp;
+        //cout << "prod[" << i << "]:" << prod << endl;
+        //cout << endl;
+    }
+    return prod;
+
 }
 
 
@@ -206,7 +228,7 @@ int main(void) {
         // Particle Filter Process
         // ==============================
         pfm.Sampling(process, input);
-        pfm.CalcLikelihood(observation, likelihood, measurement);
+        pfm.CalcLikelihood(observation, Obs_likelihood, measurement);
 
 #ifdef PARTICLE_IO
         for (int i = 0; i < pfm._samples; i++){
@@ -218,12 +240,12 @@ int main(void) {
         // ==============================
         // EP-VGM Process
         // ==============================
-        epvgm.Recursion(pfm, process, observation, likelihood, input, measurement);
+        epvgm.Recursion(pfm, process, observation, Obs_likelihood, Trans_likelihood, input, measurement);
 
         // ==============================
         // Particle Based MAP Process
         // ==============================
-        pfmap.Update(pfm, process, observation, likelihood, input, measurement);
+        pfmap.Update(pfm, process, observation, Obs_likelihood, Trans_likelihood, input, measurement);
 
         // ==============================
         // Get Estimation
