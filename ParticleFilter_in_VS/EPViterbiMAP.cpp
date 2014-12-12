@@ -71,7 +71,7 @@ void EPViterbiMat::Initialization(
     //=============================================
     // log(f(x)) + log(g(y1 | x1))
     for(int i = 0; i < particle_filter._samples; i++){
-        delta[i] = f_xx_vec[i] * g_yx_vec[i];
+        delta[i] = log(f_xx_vec[i]) + log( g_yx_vec[i]);
         last_delta[i] = 0.0;
         last_particlefilter.predict_particles[i]
             = particle_filter.predict_particles[i];
@@ -154,14 +154,14 @@ void EPViterbiMat::Recursion(
             // Search max(delta_k-1 + log(p(x_k(i) | x_k-1(j))))
             for(int j = 0; j < particle_filter._samples; j++){
                 if (j == 0){
-                    max = last_delta[j] * f_xx_vec[j];
-                    delta[i] = g_yx_vec[i] * max;
+                    max = last_delta[j] + log( f_xx_vec[j]);
+                    delta[i] = log(g_yx_vec[i]) + max;
                 }
                 else{
-                    tmp = last_delta[j] * f_xx_vec[j];
+                    tmp = last_delta[j] + log(f_xx_vec[j]);
                     if (tmp > max){
                         max = tmp;
-                        delta[i] = g_yx_vec[i] * max;
+                        delta[i] = log(g_yx_vec[i]) +  max;
                     }
                 }
             }
@@ -231,20 +231,22 @@ void EPViterbiMat::Recursion(
 
 cv::Mat EPViterbiMat::GetEstimation()
 {
-	double max = 0;
-	
-	for (int i = 0; i < last_particlefilter._samples; i++){
-		if (i == 0){
-			max = delta[0];
-			_it = i;
-		}
-		else{
-			if (delta[i] > max){
-				max = delta[i];
-				_it = i;
-			}
-		}
-	}
-	return last_particlefilter.filtered_particles[_it]._state;
+    //=====================================================
+    double max = 0;	
+    for (int i = 0; i < last_particlefilter._samples; i++){
+    	if (i == 0){
+    		max = delta[0];
+    		_it = i;
+    	}
+    	else{
+    		if (delta[i] > max){
+    			max = delta[i];
+    			_it = i;
+    		}
+    	}
+    }
+    return last_particlefilter.filtered_particles[_it]._state;
+    //========================================================
+
 }
 
