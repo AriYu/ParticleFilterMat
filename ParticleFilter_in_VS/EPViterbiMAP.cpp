@@ -104,7 +104,7 @@ void EPViterbiMat::Recursion(
     double max = 0;
     double tmp = 0;
 
-    if (! particle_filter._isResampled){
+    if (! _is_inited){
         Initialization(particle_filter, obsmodel, obs_likelihood, trans_likelihood,  observed);
     }
     else
