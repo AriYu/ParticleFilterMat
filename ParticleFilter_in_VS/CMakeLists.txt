@@ -71,6 +71,16 @@ add_executable(
   )
 target_link_libraries( test_PFM8 ${OpenCV_LIBS} )
 
+add_executable( 
+  test_PFM9 test_PFM9.cpp 
+  ParticleFilter.cpp
+  EPViterbiMAP.cpp
+  EPViterbiMAPAlpha.cpp
+  pfMapMat.cpp
+  RootMeanSquareError.cpp
+  )
+target_link_libraries( test_PFM9 ${OpenCV_LIBS} )
+
 
 
 

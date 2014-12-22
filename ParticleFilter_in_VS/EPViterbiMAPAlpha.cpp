@@ -1,4 +1,4 @@
-#include "EPViterbiMAP.h"
+#include "EPViterbiMAPAlpha.h"
 #include <algorithm>
 
 #define DEBUG
@@ -6,7 +6,7 @@
 using namespace std;
 
 
-EPViterbiMat::EPViterbiMat(ParticleFilterMat &particle_filter)
+EPViterbiMatAlpha::EPViterbiMatAlpha(ParticleFilterMat &particle_filter)
 	: last_particlefilter(particle_filter), _is_inited(false)
 {
 	this->delta.resize(particle_filter._samples);
@@ -14,16 +14,16 @@ EPViterbiMat::EPViterbiMat(ParticleFilterMat &particle_filter)
         this->g_yx_vec.resize(particle_filter._samples);
         this->f_xx_vec.resize(particle_filter._samples);
 #ifdef DEBUG
-        epvgm_output.open("epvgm.dat", ios::out);
+        epvgm_output.open("epvgm_a.dat", ios::out);
         if(!epvgm_output.is_open()){ std::cout << "epvgm output open failed" << endl;}
 #endif // DEBUG
 }
 
-EPViterbiMat::~EPViterbiMat()
+EPViterbiMatAlpha::~EPViterbiMatAlpha()
 {
 }
 
-void EPViterbiMat::Initialization(
+void EPViterbiMatAlpha::Initialization(
     ParticleFilterMat &particle_filter,
     void(*obsmodel)(cv::Mat &z, const  cv::Mat &x, const cv::Mat &rnd),
     double(*obs_likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean),
@@ -36,20 +36,7 @@ void EPViterbiMat::Initialization(
     // calc g(y_1 | x_1[i])
     //=============================================
     for (int i = 0; i < particle_filter._samples; i++){
-        cv::Mat obshat = observed.clone();
-        cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-
-        obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
-        g_yx_vec[i] = obs_likelihood(observed,
-                                 obshat, 
-                                 particle_filter._ObsNoiseCov, 
-                                 particle_filter._ObsNoiseMean);
-        sum = logsumexp(sum, g_yx_vec[i], (i==0));
-        //sum += g_yx_vec[i];
-    }
-    for(int i = 0; i < particle_filter._samples; i++){
-        //g_yx_vec[i] = g_yx_vec[i] / sum;
-        g_yx_vec[i] = g_yx_vec[i] - sum;
+        g_yx_vec[i] = particle_filter.filtered_particles[i]._weight;
     }
 
 
@@ -64,14 +51,14 @@ void EPViterbiMat::Initialization(
         f_xx_vec[i] = trans_likelihood(est_state, last_state, 
                                  particle_filter._ProcessNoiseCov, 
                                  particle_filter._ObsNoiseMean);
-        //f_xx_vec[i] = 1.0 / particle_filter._samples;
+        // f_xx_vec[i] = 1.0 / particle_filter._samples;
+        logsumexp(sum, f_xx_vec[i], (i==0));
         //sum += f_xx_vec[i];
-        sum = logsumexp(sum, f_xx_vec[i], (i==0));
     }
-    for(int i = 0; i < particle_filter._samples; i++){
-        //f_xx_vec[i] = f_xx_vec[i] / sum;
+    for(int i = 0; i< particle_filter._samples; i++){
         f_xx_vec[i] = f_xx_vec[i] - sum;
     }
+
 
     //=============================================
     // log(f(x)) + log(g(y1 | x1))
@@ -86,18 +73,17 @@ void EPViterbiMat::Initialization(
 
 #ifdef DEBUG
     for (int i = 0; i < particle_filter._samples; i++){
-
-    epvgm_output << i << " " 
-                 << particle_filter.filtered_particles[i]._state.at<double>(0,0) << " " 
-                 << delta[i] << endl;
-}
+        epvgm_output << i << " " 
+                     << particle_filter.filtered_particles[i]._state.at<double>(0,0) << " " 
+                     << delta[i] << endl;
+    }
 #endif // DEBUG
 
     epvgm_output << endl; epvgm_output << endl;
     _is_inited = true;
 }
 
-void EPViterbiMat::Recursion(
+void EPViterbiMatAlpha::Recursion(
     ParticleFilterMat &particle_filter,
     void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd),
     void(*obsmodel)(cv::Mat &z, const  cv::Mat &x, const cv::Mat &rnd),
@@ -118,21 +104,8 @@ void EPViterbiMat::Recursion(
         // calc p(y_k | x_k)
         double sum = 0;
         for(int i = 0; i < particle_filter._samples; i++){
-            cv::Mat obshat = observed.clone();
-            cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-            obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
-            g_yx_vec[i] = obs_likelihood(observed, 
-                                         obshat, 
-                                         particle_filter._ObsNoiseCov, 
-                                         particle_filter._ObsNoiseMean);
-            //sum += g_yx_vec[i];
-            sum = logsumexp(sum, g_yx_vec[i], (i==0));
-        }
-        // ===============================================
-        // p(y_k | x_k)の正規化
-        for(int i = 0; i < particle_filter._samples; i++){
-            //g_yx_vec[i] = g_yx_vec[i] / sum;
-            g_yx_vec[i] = g_yx_vec[i] - sum;
+            g_yx_vec[i] = particle_filter.filtered_particles[i]._weight;
+            //cout << "g_yx_vec[" << i << "]" << g_yx_vec[i] << endl;
         }
 
         for(int i = 0; i < particle_filter._samples; i++){
@@ -149,28 +122,28 @@ void EPViterbiMat::Recursion(
                                                particle_filter.filtered_particles[i]._state,
                                                particle_filter._ProcessNoiseCov,
                                                particle_filter._ProcessNoiseMean);
-                //sum += f_xx_vec[j];
-                sum = logsumexp(sum, f_xx_vec[j], (j==0));
+                sum = logsumexp(sum, f_xx_vec[j], (j == 0));
             }
+            //cout << "sum : " << sum << endl;
             // ===============================================
             // p(x_k(i) | x_k-1(j))の正規化
-            for(int j = 0; j < particle_filter._samples; j++){
-                //f_xx_vec[j] = f_xx_vec[j] / sum;
-                f_xx_vec[j] = f_xx_vec[j] - sum;
-            }
+            // for(int j = 0; j < particle_filter._samples; j++){
+            //     f_xx_vec[j] = exp(f_xx_vec[j] - sum);
+            //     cout << "f_xx_vec[" << j << "]" << f_xx_vec[j] << endl;
+            // }
 
             // ===============================================
             // Search max(delta_k-1 + log(p(x_k(i) | x_k-1(j))))
             for(int j = 0; j < particle_filter._samples; j++){
                 if (j == 0){
-                    max = last_delta[j] +  f_xx_vec[j];
-                    delta[i] = (g_yx_vec[i]) + max;
+                    max = last_delta[j] + (f_xx_vec[j] - sum);
+                    delta[i] = g_yx_vec[i] + max;
                 }
                 else{
-                    tmp = last_delta[j] + (f_xx_vec[j]);
+                    tmp = last_delta[j] + (f_xx_vec[j] - sum);
                     if (tmp > max){
                         max = tmp;
-                        delta[i] = (g_yx_vec[i]) +  max;
+                        delta[i] = g_yx_vec[i] +  max;
                     }
                 }
             }
@@ -238,21 +211,21 @@ void EPViterbiMat::Recursion(
     }
 }
 
-cv::Mat EPViterbiMat::GetEstimation()
+cv::Mat EPViterbiMatAlpha::GetEstimation()
 {
     //=====================================================
     double max = 0;	
     for (int i = 0; i < last_particlefilter._samples; i++){
-    	if (i == 0){
+        if (i == 0){
             max = delta[0];
             _it = i;
-    	}
-    	else{
+        }
+        else{
             if (delta[i] > max){
                 max = delta[i];
                 _it = i;
             }
-    	}
+        }
     }
     return last_particlefilter.filtered_particles[_it]._state;
     //========================================================
