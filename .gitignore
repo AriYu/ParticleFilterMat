@@ -192,3 +192,15 @@ ModelManifest.xml
 *.dat
 *.pdf
 *.eps
+
+# Binary Files
+test_PFM
+test_PFM2
+test_PFM3
+test_PFM4
+test_PFM5
+test_PFM6
+test_PFM7
+test_PFM8
+test_PFM9
+test_PFM10

@@ -127,20 +127,19 @@ void EPViterbiMatAlpha::Recursion(
             //cout << "sum : " << sum << endl;
             // ===============================================
             // p(x_k(i) | x_k-1(j))の正規化
-            // for(int j = 0; j < particle_filter._samples; j++){
-            //     f_xx_vec[j] = exp(f_xx_vec[j] - sum);
-            //     cout << "f_xx_vec[" << j << "]" << f_xx_vec[j] << endl;
-            // }
+            for(int j = 0; j < particle_filter._samples; j++){
+                f_xx_vec[j] = f_xx_vec[j] - sum;
+            }
 
             // ===============================================
             // Search max(delta_k-1 + log(p(x_k(i) | x_k-1(j))))
             for(int j = 0; j < particle_filter._samples; j++){
                 if (j == 0){
-                    max = last_delta[j] + (f_xx_vec[j] - sum);
+                    max = last_delta[j] + f_xx_vec[j];
                     delta[i] = g_yx_vec[i] + max;
                 }
                 else{
-                    tmp = last_delta[j] + (f_xx_vec[j] - sum);
+                    tmp = last_delta[j] + f_xx_vec[j];
                     if (tmp > max){
                         max = tmp;
                         delta[i] = g_yx_vec[i] +  max;
@@ -149,46 +148,6 @@ void EPViterbiMatAlpha::Recursion(
             }
         }
 
-        // g_yx = 0;
-        // {
-        //     cv::Mat obshat = observed.clone();
-        //     cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-
-        //     obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
-        //     g_yx = log(likelihood(observed, 
-        //                           obshat, 
-        //                           particle_filter._ObsNoiseCov, 
-        //                           particle_filter._ObsNoiseMean));
-        // }
-
-        // for (int j = 0; j < particle_filter._samples; j++){
-
-        //     f_xx = 0;
-        //     {
-        //         cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-        //         cv::Mat est_state = particle_filter.filtered_particles[i]._state.clone();
-        //         processmodel(est_state, 
-        //                      last_particlefilter.filtered_particles[j]._state, 
-        //                      ctrl_input, rnd_num);
-        //         f_xx = log(
-        //             likelihood(est_state,
-        //                        particle_filter.filtered_particles[i]._state,
-        //                        particle_filter._ProcessNoiseCov,
-        //                        particle_filter._ProcessNoiseMean));
-
-        //     }
-        //     if (j == 0){
-        //         max = last_delta[j] + f_xx;
-        //         delta[i] = g_yx + max;
-        //     }
-        //     else{
-        //         tmp = last_delta[j] + f_xx;
-        //         if (tmp > max){
-        //             max = tmp;
-        //             delta[i] = g_yx + max;
-        //         }
-        //     }
-        // }
 
 
         for (int i = 0; i < particle_filter._samples; i++){

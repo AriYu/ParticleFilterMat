@@ -34,7 +34,8 @@ void pfMapMat::Update(
 
         obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
         p_yx_vec[i] = obs_likelihood(observed, obshat, 
-                                     particle_filter._ObsNoiseCov, particle_filter._ObsNoiseMean);
+                                     particle_filter._ObsNoiseCov, 
+									 particle_filter._ObsNoiseMean);
         sum = logsumexp(sum, p_yx_vec[i], (i==0));
         //sum += p_yx_vec[i];
     }

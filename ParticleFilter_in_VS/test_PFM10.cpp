@@ -1,7 +1,9 @@
 ///////////////////////////////////////////////
 //
 // This Program is test for ParticleFilterMat.
-// - Two sensor model
+// - Random walk model
+// - x(k) = x(k-1) + v(k)
+// - y(k) = x(k) + w(k)
 ///////////////////////////////////////////////
 
 #include <iostream>
@@ -20,7 +22,7 @@
 
 #define	PARTICLE_IO
 
-#define NumOfParticle	3000
+#define NumOfParticle	100
 
 using namespace std;
 using namespace cv;
@@ -36,13 +38,12 @@ const double T = 500.0;         //! loop limit
 //! rnd		: process noise
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
-    //double last = xpre.at<double>(0, 0);
-	x.at<double>(0, 0)
-		//= 0.5*last + (25.0*last / (1.0 + last*last)) + 8.0 * cos(1.2*k) + rnd.at<double>(0, 0);
-		= xpre.at<double>(0, 0) + xpre.at<double>(1, 0) + rnd.at<double>(0, 0);
-	x.at<double>(1, 0)
-		= xpre.at<double>(1, 0) + rnd.at<double>(1, 0);
-		//= exp(-1*0.01*last)  + 1.0 + rnd.at<double>(0, 0);
+  //double last = xpre.at<double>(0, 0);
+  x.at<double>(0, 0) =  xpre.at<double>(0, 0) + rnd.at<double>(0, 0);
+  //= 0.5*last + (25.0*last / (1.0 + last*last)) + 8.0 * cos(1.2*k) + rnd.at<double>(0, 0);
+  // x.at<double>(1, 0)
+  // 	= xpre.at<double>(1, 0) + rnd.at<double>(1, 0);
+  //= exp(-1*0.01*last)  + 1.0 + rnd.at<double>(0, 0);
 }
 //-------------------------
 // Observation Equation
@@ -50,15 +51,10 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 //! x : 状態ベクトル
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
-	z.at<double>(0, 0)
-		//= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
-
-		= x.at<double>(0, 0);// +rnd.at<double>(0, 0);
-	//z.at<double>(1, 0)
-		//= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
-		//=  x.at<double>(0, 0);// +rnd.at<double>(0, 0);
-
-
+  z.at<double>(0, 0) = x.at<double>(0, 0);// +rnd.at<double>(0, 0);
+  //= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
+  //= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
+  //=  x.at<double>(0, 0);// +rnd.at<double>(0, 0);
 }
 //-----------------------------------------------------
 // Observation Likelihood function
@@ -117,8 +113,6 @@ double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &co
 
 int main(void) {
 
-//    double mmse_estimated = 0;
-
     ofstream output;        // x, y
     output.open("result1.dat", ios::out);
     if (!output.is_open()){ std::cout << "open result output failed" << endl; return -1; }
@@ -138,43 +132,43 @@ int main(void) {
     std::cout << "B = " << B << std::endl << std::endl;
     cv::Mat C       = (cv::Mat_<double>(2, 1) << 1, 0);
     std::cout << "C = " << C << std::endl << std::endl;
-    ParticleFilterMat pfm(A, B, C, 2);
+	//! A : 状態遷移行列, B : 制御入力, C : 観測行列, dimX : 状態ベクトルの次元数
+    ParticleFilterMat pfm(A, B, C, 1);
 
     // ==============================
     // Set Process Noise
     // ==============================
-    cv::Mat ProcessCov = (cv::Mat_<double>(2, 1) << 1e-5, 1e-5);
+    cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 5e-1);
     std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
-    cv::Mat ProcessMean       = (cv::Mat_<double>(2, 1) << 0.0, 0.0);
+    cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
     pfm.SetProcessNoise(ProcessCov, ProcessMean);
 
     // ==============================
     // Set Observation Noise
     // ==============================
-    cv::Mat ObsCov = (cv::Mat_<double>(2, 1) << 5e-1, 5e-1);
+    cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 1.0);
     std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
-    cv::Mat ObsMean = (cv::Mat_<double>(2, 1) << 0.0, 0.0);
+    cv::Mat ObsMean = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
     pfm.SetObservationNoise(ObsCov, ObsMean);
 
     // ==============================
     // Set Initial Particle Noise
     // ==============================
-    cv::Mat initCov = (cv::Mat_<double>(2, 1) << 0.1, 0.1);
+    cv::Mat initCov = (cv::Mat_<double>(1, 1) << 0.1);
     std::cout << "initCov=" << initCov << std::endl << std::endl;
-    cv::Mat initMean = (cv::Mat_<double>(2, 1) << 0.0, 0.0);
+    cv::Mat initMean = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "initMean=" << initMean << std::endl << std::endl;
     pfm.Init(NumOfParticle, initCov, initMean);
     std::cout << "Particle filter mat initialized!" << endl;
 
-    Mat    state             = Mat::zeros(2, 1, CV_64F); /* (phi, delta_phi) */
-    Mat    last_state        = Mat::zeros(2, 1, CV_64F); /* (phi, delta_phi) */
-    Mat    processNoise(2, 1, CV_64F);
-    Mat    measurement       = Mat::zeros(2, 1, CV_64F);
-    Mat    measurementNoise  = Mat::zeros(2, 1, CV_64F);
+    Mat    state             = Mat::zeros(1, 1, CV_64F); /* (x) */
+    Mat    last_state        = Mat::zeros(1, 1, CV_64F); /* (x) */
+    Mat    processNoise(1, 1, CV_64F);
+    Mat    measurement       = Mat::zeros(1, 1, CV_64F);
+    Mat    measurementNoise  = Mat::zeros(1, 1, CV_64F);
     double first_sensor      = 0.0;
-    double second_sensor     = 0.0;
 
 
     // ==============================
@@ -202,10 +196,6 @@ int main(void) {
 
     for (k = 0; k < T; k+=1.0){
         std::cout << "k == " << k << endl;
-        if (k == 0){
-            last_state.at<double>(0, 0) = 0.05;
-            last_state.at<double>(1, 0) = 0.05;
-        }
 
         // ==============================
         // Generate Actual Value
@@ -218,22 +208,9 @@ int main(void) {
         // ==============================
         // Generate Observation Value
         // ==============================
-        //randn(measurementNoise, Scalar::all(0), Scalar::all(sqrt(ObsCov.at<double>(0))));
         first_sensor  = rng.gaussian(sqrt(ObsCov.at<double>(0, 0))) + ObsMean.at<double>(0, 0);
-        second_sensor = rng.gaussian(sqrt(ObsCov.at<double>(1, 0))) + ObsMean.at<double>(1, 0);
-        //observation(measurement, state, measurementNoise);
-        measurement.at<double>(0, 0)      = state.at<double>(0, 0);
-        measurement.at<double>(1, 0)      = state.at<double>(0, 0);
-		if(100 < k && k < 200){
-		  measurementNoise.at<double>(0, 0) = first_sensor;
-		  measurementNoise.at<double>(1, 0) = second_sensor;
-		}else if(300 < k && k < 400){
-		  measurementNoise.at<double>(0, 0) = first_sensor;
-		  measurementNoise.at<double>(1, 0) = second_sensor;
-		}else{
-		  measurementNoise.at<double>(0, 0) = first_sensor;
-		  measurementNoise.at<double>(1, 0) = second_sensor;
-		}
+		measurement.at<double>(0, 0) = state.at<double>(0, 0);        
+		measurementNoise.at<double>(0, 0) = first_sensor;
         measurement += measurementNoise;
 
         // ==============================
@@ -245,7 +222,7 @@ int main(void) {
 
 #ifdef PARTICLE_IO
         for (int i = 0; i < pfm._samples; i++){
-            particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " << pfm.filtered_particles[i]._state.at<double>(1,0) << " " << exp(pfm.filtered_particles[i]._weight) << endl;
+            particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " << exp(pfm.filtered_particles[i]._weight) << endl;
         }
         particles_file << endl; particles_file << endl;
 #endif // PARTICLE_IO
@@ -287,11 +264,10 @@ int main(void) {
         // ==============================
         output << state.at<double>(0, 0) << " " // [1] true state
                << measurement.at<double>(0, 0) << " " // [2] first sensor
-               << measurement.at<double>(1, 0) << " " // [3] second sensor
-               << predict_x_pf << " " // [4] predicted state by PF(MMSE)
-               << predict_x_epvgm << " " // [5] predicted state by EPVGM
-               << predict_x_pfmap << " " // [6] predicted state by PFMAP
-               << predict_x_epvgm_alpha << endl; // [7] predicted state by EPVGMAlpha
+               << predict_x_pf << " " // [3] predicted state by PF(MMSE)
+               << predict_x_epvgm << " " // [4] predicted state by EPVGM
+               << predict_x_pfmap << " " // [5] predicted state by PFMAP
+               << predict_x_epvgm_alpha << endl; // [6] predicted state by EPVGMAlpha
 
         // ==============================
         // Particle Filter Process
@@ -314,7 +290,7 @@ int main(void) {
     output.close();
 
     //std::system("wgnuplot -persist plot4.plt");
-    std::system("gnuplot -persist plot7.plt");
+    std::system("gnuplot -persist plot10.plt");
 
     return 0;
 }
