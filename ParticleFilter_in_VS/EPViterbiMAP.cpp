@@ -1,7 +1,7 @@
 #include "EPViterbiMAP.h"
 #include <algorithm>
 
-#define DEBUG
+//#define DEBUG
 
 using namespace std;
 
@@ -70,7 +70,8 @@ void EPViterbiMat::Initialization(
     }
     for(int i = 0; i < particle_filter._samples; i++){
         //f_xx_vec[i] = f_xx_vec[i] / sum;
-        f_xx_vec[i] = f_xx_vec[i] - sum;
+        //f_xx_vec[i] = f_xx_vec[i] - sum;
+        f_xx_vec[i] = 0.0;
     }
 
     //=============================================

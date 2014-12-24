@@ -76,7 +76,7 @@ public :
 								double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean),
 								const cv::Mat &observed);
 
-	virtual void Resampling(cv::Mat observed);
+	virtual void Resampling(cv::Mat observed, double ESSth=16.0);
 
 	virtual cv::Mat GetMMSE();
 	virtual cv::Mat GetML();

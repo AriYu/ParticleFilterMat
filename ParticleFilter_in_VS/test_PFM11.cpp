@@ -20,16 +20,16 @@
 
 #include "RootMeanSquareError.h"
 
-#define	PARTICLE_IO
+//#define	PARTICLE_IO
 
-#define NumOfIterate 1
+#define NumOfIterate 20
 #define NumOfParticle  100
 
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 100.0;         //! loop limit
+const double T = 200.0;         //! loop limit
 
 //----------------------------
 // Process Equation
@@ -40,8 +40,8 @@ const double T = 100.0;         //! loop limit
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
   //double last = xpre.at<double>(0, 0);
-  x.at<double>(0, 0) =  xpre.at<double>(0, 0) + rnd.at<double>(0, 0);
-  //= 0.5*last + (25.0*last / (1.0 + last*last)) + 8.0 * cos(1.2*k) + rnd.at<double>(0, 0);
+    x.at<double>(0, 0) =  xpre.at<double>(0, 0) + 3.0*cos(xpre.at<double>(0,0)/10.0) + rnd.at<double>(0, 0);
+    //  x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) + (25.0*xpre.at<double>(0,0) / (1.0 + xpre.at<double>(0,0)*xpre.at<double>(0,0))) + 8.0 * cos(1.2*k) + rnd.at<double>(0, 0);
   // x.at<double>(1, 0)
   // 	= xpre.at<double>(1, 0) + rnd.at<double>(1, 0);
   //= exp(-1*0.01*last)  + 1.0 + rnd.at<double>(0, 0);
@@ -52,8 +52,8 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 //! x : èÛë‘ÉxÉNÉgÉã
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
-  z.at<double>(0, 0) = x.at<double>(0, 0) + rnd.at<double>(0, 0);
-  //= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
+    z.at<double>(0, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(0, 0);
+    //z.at<double>(0, 0) = x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
   //= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
   //=  x.at<double>(0, 0);// +rnd.at<double>(0, 0);
 }
@@ -121,7 +121,7 @@ int main(void) {
     // ==============================
     // Set Process Noise
     // ==============================
-    cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 1.0);
+    cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 100.0);
     std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
     cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
@@ -130,7 +130,7 @@ int main(void) {
     // ==============================
     // Set Observation Noise
     // ==============================
-    cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 0.01);
+    cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 1.0);
     std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
     cv::Mat ObsMean = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
@@ -229,7 +229,7 @@ int main(void) {
             // ==============================
             pfm.Sampling(process, input);
             pfm.CalcLikelihood(observation, Obs_likelihood, measurement);
-            pfm.Resampling(measurement,2);
+            pfm.Resampling(measurement, 16.0);
 
 #ifdef PARTICLE_IO
             for (int i = 0; i < pfm._samples; i++){

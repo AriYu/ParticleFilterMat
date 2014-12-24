@@ -388,27 +388,17 @@ void ParticleFilterMat::CalcLikelihood(
     // normalize weights
     //====================================
     double sum2 = 0;
-    double sum3 = 0;
-    double sum4 = 0;
     for (int i = 0; i < _samples; i++)
     {
         l[i] = l[i] - sum; // Normalize weights
-        sum3 += exp(l[i]);
         filtered_particles[i]._weight += l[i];
-        sum2 = logsumexp(sum2,filtered_particles[i]._weight, (i==0));
+        sum2 = logsumexp(sum2, filtered_particles[i]._weight, (i == 0));
     }
-
     for (int i = 0; i < _samples; i++)
     {
         filtered_particles[i]._weight = filtered_particles[i]._weight - sum2;
-        
-        sum4 += exp(filtered_particles[i]._weight);
-        // cout << "filtered_particles[" << i << "] : " << exp(filtered_particles[i]._weight) << endl; 
     }
-    // cout << "sum2:" << sum2 << endl;
-    // cout << "sum3:" << sum3 << endl;
-    // cout << "sum4:" << sum4 << endl;
-        
+
 }
 
 /*
@@ -424,7 +414,7 @@ void ParticleFilterMat::CalcLikelihood(
 // 増やす操作を行う。
 //----------------------------------------------------------------------------
 */
-void ParticleFilterMat::Resampling(cv::Mat observed)
+void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
 {
     static random_device rdev;
     static mt19937 engine(rdev());
@@ -435,7 +425,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
 //	double ESSth = (double)_samples / 40.0;
     //double ESSth = (double)_samples / 10.0;
     //double ESSth = 100.0;
-    double ESSth = 16.0;
+    //double ESSth = 16.0;
     for (int i = 0; i < _samples; i++){
         tmp += pow(exp(filtered_particles[i]._weight), 2.0);
     }
@@ -514,6 +504,8 @@ void ParticleFilterMat::Resampling(cv::Mat observed)
     }
 }
 
+
+
 cv::Mat ParticleFilterMat::GetMMSE()
 {
     cv::Mat mmse = cv::Mat_<double>(_dimX, 1);
@@ -522,7 +514,8 @@ cv::Mat ParticleFilterMat::GetMMSE()
         mmse.at<double>(j, 0) = 0.0;
         for (int i = 0; i < _samples; i++)
         {
-            tmp = (filtered_particles[i]._state.at<double>(j, 0) * exp(filtered_particles[i]._weight));
+            tmp = (filtered_particles[i]._state.at<double>(j, 0) 
+                   * exp(filtered_particles[i]._weight));
             mmse.at<double>(j, 0) += tmp;
         }
     }

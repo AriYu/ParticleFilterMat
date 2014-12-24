@@ -35,7 +35,7 @@ void pfMapMat::Update(
         obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
         p_yx_vec[i] = obs_likelihood(observed, obshat, 
                                      particle_filter._ObsNoiseCov, 
-									 particle_filter._ObsNoiseMean);
+                                     particle_filter._ObsNoiseMean);
         sum = logsumexp(sum, p_yx_vec[i], (i==0));
         //sum += p_yx_vec[i];
     }
@@ -53,24 +53,25 @@ void pfMapMat::Update(
             processmodel(est_state, last_particlefilter.filtered_particles[j]._state, 
                          ctrl_input, rnd_num);
             p_xx_vec[j] =  trans_likelihood(est_state,
-                                      particle_filter.filtered_particles[i]._state,
-                                      particle_filter._ProcessNoiseCov,
-                                      particle_filter._ProcessNoiseMean);
+                                            particle_filter.filtered_particles[i]._state,
+                                            particle_filter._ProcessNoiseCov,
+                                            particle_filter._ProcessNoiseMean);
             //sum += p_xx_vec[j];
             sum = logsumexp(sum, p_xx_vec[j], (j == 0));
         }
         for(int j = 0; j < particle_filter._samples; j++){
-            //p_xx_vec[j] = p_xx_vec[j] / sum;
             p_xx_vec[j] = p_xx_vec[j] - sum;
         }
         sum = 0;
         double tmp = 0;
         for (int j = 0; j < particle_filter._samples; j++){
             tmp = (p_xx_vec[j] + last_particlefilter.filtered_particles[j]._weight );
-            map[i] = logsumexp(map[i], tmp, (j == 0));
+            //map[i] = logsumexp(map[i], tmp, (j == 0));
+            map[i] += exp(tmp);
         }
-
-        map[i] = exp(p_yx_vec[i] + map[i]);
+        //map[i] = exp(p_yx_vec[i] + map[i]);
+        map[i] = exp(p_yx_vec[i]) * map[i];
+        //std::cout << "map[" << i << "]:" << map[i] << std::endl;
     }
     last_particlefilter = particle_filter;
 }
