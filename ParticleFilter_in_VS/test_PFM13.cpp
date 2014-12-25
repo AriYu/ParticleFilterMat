@@ -20,17 +20,17 @@
 
 #include "RootMeanSquareError.h"
 
-//#define	PARTICLE_IO
+#define	PARTICLE_IO
 
-#define NumOfIterate 1
-#define NumOfParticle  100
-#define ESSTH 16
+#define NumOfIterate 2
+#define NumOfParticle 500
+#define ESSth 2
 
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 200.0;         //! loop limit
+const double T = 100.0;         //! loop limit
 
 //----------------------------
 // Process Equation
@@ -41,23 +41,26 @@ const double T = 200.0;         //! loop limit
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
   //double last = xpre.at<double>(0, 0);
-  x.at<double>(0, 0) =  xpre.at<double>(0, 0) + rnd.at<double>(0, 0);
-  //= 0.5*last + (25.0*last / (1.0 + last*last)) + 8.0 * cos(1.2*k) + rnd.at<double>(0, 0);
+    //x.at<double>(0, 0) =  xpre.at<double>(0, 0) + 3.0*cos(xpre.at<double>(0,0)/10.0) + rnd.at<double>(0, 0);
+    x.at<double>(0, 0) =  xpre.at<double>(0,0) + 8.0 * cos(0.1*k) + rnd.at<double>(0, 0);
   // x.at<double>(1, 0)
   // 	= xpre.at<double>(1, 0) + rnd.at<double>(1, 0);
   //= exp(-1*0.01*last)  + 1.0 + rnd.at<double>(0, 0);
 }
+
+
 //-------------------------
 // Observation Equation
 //! z : 観測値
 //! x : 状態ベクトル
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
-  z.at<double>(0, 0) = x.at<double>(0, 0) + rnd.at<double>(0, 0);
-  //= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
-  //= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
+    // z.at<double>(0, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(0, 0);
+    z.at<double>(0, 0) = x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0 + rnd.at<double>(0, 0);
+    //= x.at<double>(0, 0) * x.at<double>(0, 0) / 20.0;// +rnd.at<double>(0, 0);
   //=  x.at<double>(0, 0);// +rnd.at<double>(0, 0);
 }
+
 //-----------------------------------------------------
 // Observation Likelihood function
 //! z    : 観測値
@@ -68,9 +71,17 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 {
     double prod = 0.0, e;
 
-    double sum = 0;
+    //for (int i = 0; i < z.rows; ++i)
+    //{
+    //	e           = z.at<double>(i, 0) - zhat.at<double>(i, 0) -mean.at<double>(i, 0);
+    //	double tmp  = exp((-pow(e, 2.0) / (2.0*cov.at<double>(i, 0))));
+    //	tmp         = tmp / sqrt(2.0*CV_PI*cov.at<double>(i, 0));
+    //	prod       += tmp;
+    //	//cout << "prod[" << i << "]:" << prod << endl;
+    //	//cout << endl;
+    //}
     e = z.at<double>(0, 0) - zhat.at<double>(0, 0) - mean.at<double>(0, 0);
-    double tmp = -(e*e) / (2.0*cov.at<double>(0, 0));
+    double tmp = -pow(e, 2.0) / (2.0*cov.at<double>(0, 0));
     tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
     return tmp;
 }
@@ -83,13 +94,16 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 //! mena : 平均
 double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &cov, const cv::Mat &mean)
 {
-    // cv::Mat error = x - xhat;
-    // double error_norm = cv::norm(error);
-    double error = x.at<double>(0,0) - xhat.at<double>(0,0);
-    double error_norm = pow(error, 2.0);
-    double tmp = -error_norm / (2.0*cov.at<double>(0, 0));
+    double prod = 0.0, e, sum=0.0;
+    cv::Mat error = x - xhat;
+    double error_norm = cv::norm(error);
+
+    double tmp = -pow(error_norm, 2.0) / (2.0*cov.at<double>(0, 0));
     tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
+    //   prod += tmp;
+
     return tmp;
+
 }
 
 
@@ -102,7 +116,7 @@ int main(void) {
     // ==============================
     // Set Process Noise
     // ==============================
-    cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 1.0);
+    cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 10.0);
     std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
     cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
@@ -111,7 +125,7 @@ int main(void) {
     // ==============================
     // Set Observation Noise
     // ==============================
-    cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 0.01);
+    cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 1.0);
     std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
     cv::Mat ObsMean = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
@@ -120,7 +134,7 @@ int main(void) {
     // ==============================
     // Set Initial Particle Noise
     // ==============================
-    cv::Mat initCov = (cv::Mat_<double>(1, 1) << 0.01);
+    cv::Mat initCov = (cv::Mat_<double>(1, 1) << 5.0);
     std::cout << "initCov=" << initCov << std::endl << std::endl;
     cv::Mat initMean = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "initMean=" << initMean << std::endl << std::endl;
@@ -203,7 +217,6 @@ int main(void) {
             first_sensor = rng.gaussian(sqrt(ObsCov.at<double>(0, 0))) 
                 + ObsMean.at<double>(0, 0);
             measurementNoise.at<double>(0, 0) = first_sensor;
-            
             observation(measurement, state, measurementNoise);
 
             // ==============================
@@ -211,26 +224,28 @@ int main(void) {
             // ==============================
             pfm.Sampling(process, input);
             pfm.CalcLikelihood(observation, Obs_likelihood, measurement);
-
-
+            
 #ifdef PARTICLE_IO
             for (int i = 0; i < pfm._samples; i++){
-                particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " << exp(pfm.filtered_particles[i]._weight) << endl;
+                particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " 
+                               << exp(pfm.filtered_particles[i]._weight) << endl;
             }
             particles_file << endl; particles_file << endl;
 #endif // PARTICLE_IO
 
-            
+            //pfm.Resampling(measurement, ESSth);
             // ==============================
             // EP-VGM Process
             // ==============================
-            epvgm.Recursion(pfm, process, observation, Obs_likelihood, Trans_likelihood, input, measurement);
+            epvgm.Recursion(pfm, process, observation, 
+                            Obs_likelihood, Trans_likelihood, input, measurement);
             //epvgm_alpha.Recursion(pfm, process, observation, Obs_likelihood, Trans_likelihood, input, measurement);
 
             // ==============================
             // Particle Based MAP Process
             // ==============================
-            pfmap.Update(pfm, process, observation, Obs_likelihood, Trans_likelihood, input, measurement);
+            pfmap.Update(pfm, process, observation, 
+                         Obs_likelihood, Trans_likelihood, input, measurement);
 
             // ==============================
             // Get Estimation
@@ -266,7 +281,7 @@ int main(void) {
             // ==============================
             // Particle Filter Process
             // ==============================
-            pfm.Resampling(measurement, ESSTH);
+            pfm.Resampling(measurement, ESSth);
 
             last_state = state;
         }
@@ -287,7 +302,7 @@ int main(void) {
         ave_pfmap += pfmap_rmse.getRMSE();
     }
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
-    cout << "linear, mono modul model" << endl;
+    cout << "nonlinear, multimodal model" << endl;
     cout << "Particles : " <<    NumOfParticle << endl;
     std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
     std::cout << "ObsCov      =" << ObsCov << std::endl << std::endl;

@@ -367,21 +367,12 @@ void ParticleFilterMat::CalcLikelihood(
 
     double sum = 0;
     cv::Mat obshat = observed.clone();
-    cv::Mat rnd_num = observed.clone();
+    cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
     vector<double> l(_samples); // 対数重み
     for (int i = 0; i < _samples; i++){
-        for (int j = 0; j < rnd_num.cols; j++){
-            normal_distribution<> sigma(_ObsNoiseMean.at<double>(j, 0)
-                                        , sqrt(_ObsNoiseCov.at<double>(j, 0)));
-            rnd_num.at<double>(j, 0) = sigma(engine);
-        }
         obsmodel(obshat, filtered_particles[i]._state, rnd_num);
         l[i] = likelihood(observed, obshat, _ObsNoiseCov, _ObsNoiseMean);
         sum = logsumexp(sum, l[i], (i==0));
-        // filtered_particles[i]._weight
-        // 	= filtered_particles[i]._weight*likelihood(observed, obshat, _ObsNoiseCov, _ObsNoiseMean);
-		
-        // sum += filtered_particles[i]._weight;
     }
 
     //====================================
@@ -422,18 +413,12 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
     double mean = (double)(1.0 / (double)_samples);
     double ESS = 0;
     double tmp = 0;
-//	double ESSth = (double)_samples / 40.0;
-    //double ESSth = (double)_samples / 10.0;
-    //double ESSth = 100.0;
-    //double ESSth = 16.0;
     for (int i = 0; i < _samples; i++){
         tmp += pow(exp(filtered_particles[i]._weight), 2.0);
     }
     ESS = 1.0 / tmp;
 
-
-
-    if ((ESS < (_samples / ESSth)) /*&& error_sum < 2.0*/){ // do resampling
+    if ((ESS < (_samples / ESSth))){ // do resampling
         cout << "[Resampled] ESS : " << ESS << " / " << _samples / ESSth << endl;
         _isResampled = true;
         // -------------- prSystematic --------------
