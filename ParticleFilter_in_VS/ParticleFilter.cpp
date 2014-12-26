@@ -213,13 +213,6 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 		}
 	}
 
-	//for (int i = 0; i < _samples; i++)
-	//{
-	//	std::cout << "constructor filtered[" << i << "]" <<
-	//		filtered_particles[i]._state
-	//		<< std::endl << std::endl;
-	//}
-
 }
 
 void ParticleFilterMat::SetProcessNoise(cv::Mat Cov, cv::Mat Mean)
@@ -277,7 +270,6 @@ void ParticleFilterMat::Sampling(
     static random_device rdev;
     static mt19937 engine(rdev());
 
-    //cv::Mat rnd_num = cv::Mat_<double>(_dimX, 1);
     cv::Mat rnd_num = filtered_particles[0]._state.clone();
 	
     for (int i = 0; i < _samples; i++){

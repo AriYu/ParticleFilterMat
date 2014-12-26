@@ -63,10 +63,8 @@ void pfMapMat::Update(
         double tmp = 0;
         for (int j = 0; j < particle_filter._samples; j++){
             tmp = (p_xx_vec[j] + last_particlefilter.filtered_particles[j]._weight );
-            //tmp = (p_xx_vec[j] + particle_filter.filtered_particles[j]._weight );
             map[i] += exp(tmp);
         }
-        //map[i] = exp(p_yx_vec[i] + map[i]);
         map[i] = exp(p_yx_vec[i]) * map[i];
     }
     last_particlefilter = particle_filter;
