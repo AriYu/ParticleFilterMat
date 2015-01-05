@@ -38,9 +38,9 @@ void pfMapMat::Update(
                                      particle_filter._ObsNoiseMean);
 	sum = logsumexp(sum, p_yx_vec[i], (i==0));
     }
-    // for(int i = 0; i < particle_filter._samples; i++){
-	// p_yx_vec[i] = p_yx_vec[i] - sum;
-    // }
+    for(int i = 0; i < particle_filter._samples; i++){
+	p_yx_vec[i] = p_yx_vec[i] - sum;
+    }
 
     for (int i = 0; i < particle_filter._samples; i++){
 	map[i] = 0.0;
@@ -58,9 +58,7 @@ void pfMapMat::Update(
 	}
 	// for(int j = 0; j < particle_filter._samples; j++){
         //     p_xx_vec[j] = p_xx_vec[j] - sum;
-        //     //p_xx_vec[j] = last_particlefilter.filtered_particles[i]._weight;
-        //     //p_xx_vec[j] = 0.0;
-	// }
+ 	// }
 	sum = 0;
 	double tmp = 0;
 	for (int j = 0; j < particle_filter._samples; j++){
