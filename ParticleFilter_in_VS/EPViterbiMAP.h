@@ -32,6 +32,8 @@ protected:
 	std::vector<double> last_delta;
 	std::vector<double> g_yx_vec;
 	std::vector<double> f_xx_vec;
+	std::vector<double> last_g_yx_vec;
+	std::vector<double> max;
 	int _it;
 	std::ofstream epvgm_output;
 };

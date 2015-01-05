@@ -23,14 +23,14 @@
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
-#define NumOfParticle 100
-#define ESSth 20
+#define NumOfParticle 300
+#define ESSth 30
 
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 100.0;         //! loop limit
+const double T = 50.0;         //! loop limit
 
 //----------------------------
 // Process Equation
@@ -40,7 +40,10 @@ const double T = 100.0;         //! loop limit
 //! rnd		: process noise
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
-    x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) + (25.0*xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) +  8.0 * cos(1.2*k) + rnd.at<double>(0, 0);
+    x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
+	  + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
+	  +  8.0 * cos(1.2*k)
+	  + rnd.at<double>(0, 0);
 }
 
 
@@ -50,7 +53,8 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 //! x : èÛë‘ÉxÉNÉgÉã
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
-    z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 + rnd.at<double>(0, 0);
+    z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
+	  + rnd.at<double>(0, 0);
 }
 
 //-----------------------------------------------------
@@ -81,7 +85,7 @@ double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &co
     // double error_norm = cv::norm(error);
     double e = x.at<double>(0,0) - xhat.at<double>(0,0);
     double tmp = -(e*e) / (2.0*cov.at<double>(0, 0));
-    tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
+    //tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
 
     return tmp;
 
@@ -178,6 +182,7 @@ int main(void) {
         RMSE epvgm_rmse;
         RMSE epvgm_alpha_rmse;
         RMSE pfmap_rmse;
+		RMSE obs_rmse;
 
         cv::RNG rng;            // random generater
 
@@ -249,6 +254,11 @@ int main(void) {
             epvgm_rmse.storeData(state.at<double>(0, 0), predict_x_epvgm);
             epvgm_alpha_rmse.storeData(state.at<double>(0, 0), predict_x_epvgm_alpha);
             pfmap_rmse.storeData(state.at<double>(0, 0), predict_x_pfmap);
+			cv::Mat actual_obs = measurement.clone();
+			cv::Mat rnd_num = cv::Mat::zeros(actual_obs.rows, actual_obs.cols, CV_64F);
+			observation(actual_obs, state, rnd_num);
+			obs_rmse.storeData(actual_obs.at<double>(0,0), measurement.at<double>(0,0));
+			
 		
             // ==============================
             // Save Estimated State
@@ -272,11 +282,12 @@ int main(void) {
         epvgm_rmse.calculationRMSE();
         epvgm_alpha_rmse.calculationRMSE();
         pfmap_rmse.calculationRMSE();
+		obs_rmse.calculationRMSE();
 
         std::cout << "RMSE(MMSE)  : " << mmse_rmse.getRMSE() << endl;
         std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
-        //std::cout << "RMSE(EPVGMA): " << epvgm_alpha_rmse.getRMSE() << endl;
         std::cout << "RMSE(PFMAP) : " << pfmap_rmse.getRMSE() << endl;
+        std::cout << "RMSE(Obs) : " << obs_rmse.getRMSE() << endl;
 
         output.close();
         ave_mmse += mmse_rmse.getRMSE();
