@@ -23,8 +23,8 @@
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
-#define NumOfParticle 300
-#define ESSth 300
+#define NumOfParticle 100
+#define ESSth 50
 
 using namespace std;
 using namespace cv;
@@ -88,7 +88,6 @@ double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &co
     //tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
 
     return tmp;
-
 }
 
 
