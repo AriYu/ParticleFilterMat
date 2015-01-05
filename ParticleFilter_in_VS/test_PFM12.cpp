@@ -24,7 +24,7 @@
 
 #define NumOfIterate 1
 #define NumOfParticle 300
-#define ESSth 30
+#define ESSth 300
 
 using namespace std;
 using namespace cv;
@@ -182,7 +182,7 @@ int main(void) {
         RMSE epvgm_rmse;
         RMSE epvgm_alpha_rmse;
         RMSE pfmap_rmse;
-		RMSE obs_rmse;
+        RMSE obs_rmse;
 
         cv::RNG rng;            // random generater
 
@@ -254,10 +254,10 @@ int main(void) {
             epvgm_rmse.storeData(state.at<double>(0, 0), predict_x_epvgm);
             epvgm_alpha_rmse.storeData(state.at<double>(0, 0), predict_x_epvgm_alpha);
             pfmap_rmse.storeData(state.at<double>(0, 0), predict_x_pfmap);
-			cv::Mat actual_obs = measurement.clone();
-			cv::Mat rnd_num = cv::Mat::zeros(actual_obs.rows, actual_obs.cols, CV_64F);
-			observation(actual_obs, state, rnd_num);
-			obs_rmse.storeData(actual_obs.at<double>(0,0), measurement.at<double>(0,0));
+            cv::Mat actual_obs = measurement.clone();
+            cv::Mat rnd_num = cv::Mat::zeros(actual_obs.rows, actual_obs.cols, CV_64F);
+            observation(actual_obs, state, rnd_num);
+            obs_rmse.storeData(actual_obs.at<double>(0,0), measurement.at<double>(0,0));
 			
 		
             // ==============================
@@ -276,13 +276,15 @@ int main(void) {
             //pfm.Resampling(measurement, ESSth);
 
             last_state = state;
+
+
         }
 
         mmse_rmse.calculationRMSE();
         epvgm_rmse.calculationRMSE();
         epvgm_alpha_rmse.calculationRMSE();
         pfmap_rmse.calculationRMSE();
-		obs_rmse.calculationRMSE();
+        obs_rmse.calculationRMSE();
 
         std::cout << "RMSE(MMSE)  : " << mmse_rmse.getRMSE() << endl;
         std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
