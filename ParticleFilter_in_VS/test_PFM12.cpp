@@ -22,7 +22,7 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 10
+#define NumOfIterate 1
 #define NumOfParticle 100
 #define ESSth 50
 
@@ -69,7 +69,7 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 
     e = z.at<double>(0, 0) - zhat.at<double>(0, 0) - mean.at<double>(0, 0);
     double tmp = -(e*e) / (2.0*cov.at<double>(0, 0));
-    tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
+    //tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
     return tmp;
 }
 
@@ -184,7 +184,7 @@ int main(void) {
         RMSE pfmap_rmse;
         RMSE obs_rmse;
 
-        cv::RNG rng;            // random generater
+        cv::RNG rng(-1);            // random generater
 
         for (k = 0; k < T; k+=1.0){
             std::cout << "\rloop == " << loop << "\tk == " << k << "\r" << endl;

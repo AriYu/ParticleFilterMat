@@ -140,9 +140,9 @@ void EPViterbiMat::Recursion(
         }
         // ===============================================
         // p(y_k | x_k)の正規化
-        for(int i = 0; i < particle_filter._samples; i++){
-            g_yx_vec[i] = g_yx_vec[i] - sum;
-        }
+        // for(int i = 0; i < particle_filter._samples; i++){
+        //     g_yx_vec[i] = g_yx_vec[i] - sum;
+        // }
 
         for(int i = 0; i < particle_filter._samples; i++){
             // ================================================
