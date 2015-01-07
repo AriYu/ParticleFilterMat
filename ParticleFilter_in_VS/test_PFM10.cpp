@@ -111,7 +111,7 @@ int main(void) {
     // ==============================
     // Set Observation Noise
     // ==============================
-    cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 0.01);
+    cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 5.0);
     std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
     cv::Mat ObsMean = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
@@ -239,8 +239,8 @@ int main(void) {
             double predict_x_pf    = predictionPF.at<double>(0, 0);
             Mat    predictionEPVGM = epvgm.GetEstimation();
             double predict_x_epvgm = predictionEPVGM.at<double>(0, 0);
-            Mat    predictionEPVGMAlpha = epvgm_alpha.GetEstimation();
-            double predict_x_epvgm_alpha = predictionEPVGMAlpha.at<double>(0, 0);
+            Mat    predictionML = pfm.GetML();
+            double predict_x_ml = predictionML.at<double>(0, 0);
 
             Mat    predictionPFMAP = pfmap.GetEstimation();
             double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
@@ -250,7 +250,7 @@ int main(void) {
             // ==============================
             mmse_rmse.storeData(state.at<double>(0, 0), predict_x_pf);
             epvgm_rmse.storeData(state.at<double>(0, 0), predict_x_epvgm);
-            epvgm_alpha_rmse.storeData(state.at<double>(0, 0), predict_x_epvgm_alpha);
+            epvgm_alpha_rmse.storeData(state.at<double>(0, 0), predict_x_ml);
             pfmap_rmse.storeData(state.at<double>(0, 0), predict_x_pfmap);
 		
             // ==============================
@@ -261,7 +261,7 @@ int main(void) {
                    << predict_x_pf << " " // [3] predicted state by PF(MMSE)
                    << predict_x_epvgm << " " // [4] predicted state by EPVGM
                    << predict_x_pfmap << " " // [5] predicted state by PFMAP
-                   << predict_x_epvgm_alpha << endl; // [6] predicted state by EPVGMAlpha
+                   << predict_x_ml << endl; // [6] predicted state by EPVGMAlpha
 
             // ==============================
             // Particle Filter Process
@@ -278,7 +278,7 @@ int main(void) {
 
         std::cout << "RMSE(MMSE)  : " << mmse_rmse.getRMSE() << endl;
         std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
-        std::cout << "RMSE(EPVGMA): " << epvgm_alpha_rmse.getRMSE() << endl;
+        std::cout << "RMSE(ML): " << epvgm_alpha_rmse.getRMSE() << endl;
         std::cout << "RMSE(PFMAP) : " << pfmap_rmse.getRMSE() << endl;
 
         output.close();

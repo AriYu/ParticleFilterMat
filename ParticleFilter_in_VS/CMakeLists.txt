@@ -108,9 +108,11 @@ add_executable(
   RootMeanSquareError.cpp
   )
 target_link_libraries( test_PFM12 ${OpenCV_LIBS} )
+
 add_executable( 
   test_PFM13 test_PFM13.cpp 
   ParticleFilter.cpp
+  ParticleFilterK.cpp
   EPViterbiMAP.cpp
   EPViterbiMAPAlpha.cpp
   pfMapMat.cpp

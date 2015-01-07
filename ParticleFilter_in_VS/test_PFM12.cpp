@@ -1,5 +1,4 @@
 ///////////////////////////////////////////////
-//
 // This Program is test for ParticleFilterMat.
 // - Random walk model
 // - x(k) = x(k-1) + v(k)
@@ -24,13 +23,13 @@
 
 #define NumOfIterate 1
 #define NumOfParticle 100
-#define ESSth 50
+#define ESSth NumOfParticle / 2.0
 
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 50.0;         //! loop limit
+const double T = 100.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -54,7 +53,9 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
     z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
-	  + rnd.at<double>(0, 0);
+        + rnd.at<double>(0, 0);
+    // z.at<double>(0, 0) = (x.at<double>(0, 0)) 
+    //       + rnd.at<double>(0, 0);
 }
 
 //-----------------------------------------------------
@@ -106,7 +107,6 @@ int main(void) {
     cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
     
-
     // ==============================
     // Set Observation Noise
     // ==============================
@@ -114,7 +114,6 @@ int main(void) {
     std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
     cv::Mat ObsMean = (cv::Mat_<double>(1, 1) << 0.0);
     std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
-
 
     // ==============================
     // Set Initial Particle Noise
@@ -136,7 +135,8 @@ int main(void) {
 #ifdef PARTICLE_IO
         ofstream particles_file; // k, x, weight
         particles_file.open("result_particle.dat", ios::out);
-        if (!particles_file.is_open()){ std::cout << "open result_particle output failed" << endl; return -1; }
+        if (!particles_file.is_open()){ 
+            std::cout << "open result_particle output failed" << endl; return -1; }
 #endif // PARTICLE_IO
 
         // ==============================
@@ -161,13 +161,11 @@ int main(void) {
         Mat    measurementNoise  = Mat::zeros(1, 1, CV_64F);
         double first_sensor      = 0.0;
 
-
         // ==============================
         // End Point Viterbi Estimation
         // ==============================
         EPViterbiMat epvgm(pfm);
         EPViterbiMatAlpha epvgm_alpha(pfm);
-
 
         // ==============================
         // Particle based MAP Estimation
@@ -185,17 +183,17 @@ int main(void) {
         RMSE obs_rmse;
 
         cv::RNG rng(-1);            // random generater
+        
+        double input = 0.0;
 
-        for (k = 0; k < T; k+=1.0){
+        for (k = 0; k < T;k += 1.0){
             std::cout << "\rloop == " << loop << "\tk == " << k << "\r" << endl;
 
             // ==============================
             // Generate Actual Value
-            // ==============================
-            double input = 0.0;
+            // =============================
             randn(processNoise, Scalar(0), Scalar::all(sqrt(ProcessCov.at<double>(0, 0))));
             process(state, last_state, input, processNoise);
-
 
             // ==============================
             // Generate Observation Value
@@ -208,19 +206,11 @@ int main(void) {
             // ==============================
             // Particle Filter Process
             // ==============================
-            pfm.Sampling(process, input);
+            pfm.Sampling(process, input);            
             pfm.CalcLikelihood(observation, Obs_likelihood, measurement);
-            //pfm.Resampling(measurement, ESSth);
+            pfm.Resampling(measurement, ESSth);
 
-#ifdef PARTICLE_IO
-            for (int i = 0; i < pfm._samples; i++){
-                particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " 
-                               << exp(pfm.predict_particles[i]._weight) << endl;
-            }
-            particles_file << endl; particles_file << endl;
-#endif // PARTICLE_IO
-
-
+           
             // ==============================
             // EP-VGM Process
             // ==============================
@@ -233,6 +223,17 @@ int main(void) {
             pfmap.Update(pfm, process, observation, 
                          Obs_likelihood, Trans_likelihood, input, measurement);
 
+
+#ifdef PARTICLE_IO
+            for (int i = 0; i < pfm._samples; i++){
+                particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " 
+                               << exp(pfm.filtered_particles[i]._weight) << endl;
+            }
+            particles_file << endl; particles_file << endl;
+#endif // PARTICLE_IO
+
+    
+
             // ==============================
             // Get Estimation
             // ==============================
@@ -240,9 +241,8 @@ int main(void) {
             double predict_x_pf    = predictionPF.at<double>(0, 0);
             Mat    predictionEPVGM = epvgm.GetEstimation();
             double predict_x_epvgm = predictionEPVGM.at<double>(0, 0);
-            Mat    predictionML = pfm.GetML();
-            double predict_x_ml = predictionML.at<double>(0, 0);
-
+            Mat    predictionML    = pfm.GetML();
+            double predict_x_ml    = predictionML.at<double>(0, 0);
             Mat    predictionPFMAP = pfmap.GetEstimation();
             double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
 
@@ -257,26 +257,20 @@ int main(void) {
             cv::Mat rnd_num = cv::Mat::zeros(actual_obs.rows, actual_obs.cols, CV_64F);
             observation(actual_obs, state, rnd_num);
             obs_rmse.storeData(actual_obs.at<double>(0,0), measurement.at<double>(0,0));
-			
-		
+					
             // ==============================
             // Save Estimated State
             // ==============================
-            output << state.at<double>(0, 0) << " " // [1] true state
+            output << state.at<double>(0, 0) << " "       // [1] true state
                    << measurement.at<double>(0, 0) << " " // [2] first sensor
-                   << predict_x_pf << " " // [3] predicted state by PF(MMSE)
-                   << predict_x_epvgm << " " // [4] predicted state by EPVGM
-                   << predict_x_pfmap << " " // [5] predicted state by PFMAP
-                   << predict_x_ml << endl; // [6] predicted state by EPVGMAlpha
-
-            // ==============================
-            // Particle Filter Process
-            // ==============================
-            pfm.Resampling(measurement, ESSth);
+                   << predict_x_pf << " "                 // [3] predicted state by PF(MMSE)
+                   << predict_x_epvgm << " "              // [4] predicted state by EPVGM
+                   << predict_x_pfmap << " "              // [5] predicted state by PFMAP
+                   << predict_x_ml << endl;               // [6] predicted state by PF(ML)
 
             last_state = state;
 
-
+            
         }
 
         mmse_rmse.calculationRMSE();
@@ -288,21 +282,21 @@ int main(void) {
         std::cout << "RMSE(MMSE)  : " << mmse_rmse.getRMSE() << endl;
         std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
         std::cout << "RMSE(PFMAP) : " << pfmap_rmse.getRMSE() << endl;
-        std::cout << "RMSE(Obs) : " << obs_rmse.getRMSE() << endl;
+        std::cout << "RMSE(Obs)   : " << obs_rmse.getRMSE() << endl;
 
         output.close();
-        ave_mmse += mmse_rmse.getRMSE();
+        ave_mmse  += mmse_rmse.getRMSE();
         ave_epvgm += epvgm_rmse.getRMSE();
         ave_pfmap += pfmap_rmse.getRMSE();
-        ave_ml += ml_rmse.getRMSE();
+        ave_ml    += ml_rmse.getRMSE();
     }
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
-    cout << "nonlinear, multimodal model" << endl;
-    cout << "Particles : " <<    NumOfParticle << endl;
+    std::cout << "nonlinear, multimodal model" << endl;
+    std::cout << "Particles   : " << NumOfParticle << endl;
     std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
-    std::cout << "ObsCov      =" << ObsCov << std::endl << std::endl;
-    std::cout << "RMSE(MMSE)  : " <<  ave_mmse / (double)NumOfIterate << endl;
-    std::cout << "RMSE(ML)    : " <<  ave_ml / (double)NumOfIterate << endl;
+    std::cout << "ObsCov      ="  << ObsCov << std::endl << std::endl;
+    std::cout << "RMSE(MMSE)  : " << ave_mmse / (double)NumOfIterate << endl;
+    std::cout << "RMSE(ML)    : " << ave_ml / (double)NumOfIterate << endl;
     std::cout << "RMSE(EPVGM) : " << ave_epvgm / (double)NumOfIterate << endl;
     std::cout << "RMSE(PFMAP) : " << ave_pfmap / (double)NumOfIterate << endl;
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;

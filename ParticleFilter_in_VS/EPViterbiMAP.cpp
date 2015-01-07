@@ -7,7 +7,7 @@ using namespace std;
 
 
 EPViterbiMat::EPViterbiMat(ParticleFilterMat &particle_filter)
-	: last_particlefilter(particle_filter), _is_inited(false)
+	: last_particlefilter(particle_filter), is_inited_(false)
 {
 	this->delta.resize(particle_filter._samples);
 	this->last_delta.resize(particle_filter._samples);
@@ -99,7 +99,7 @@ void EPViterbiMat::Initialization(
 
 
     epvgm_output << endl; epvgm_output << endl;
-    _is_inited = true;
+    is_inited_ = true;
 }
 
 void EPViterbiMat::Recursion(
@@ -120,7 +120,7 @@ void EPViterbiMat::Recursion(
 
     double tmp = 0;
 
-    if (! _is_inited){
+    if (! is_inited_){
 	Initialization(particle_filter, obsmodel, obs_likelihood, trans_likelihood,  observed);
     }
     else
@@ -231,20 +231,20 @@ void EPViterbiMat::Recursion(
 cv::Mat EPViterbiMat::GetEstimation()
 {
     //=====================================================
-    double _max = 0;	
+    double max_ = 0;	
     for (int i = 0; i < last_particlefilter._samples; i++){
     	if (i == 0){
-		  _max = delta[0];
-		  _it = i;
+		  max_ = delta[0];
+		  it_ = i;
     	}
     	else{
-            if (delta[i] > _max){
-			  _max = delta[i];
-			  _it = i;
+            if (delta[i] > max_){
+			  max_ = delta[i];
+			  it_ = i;
             }
     	}
     }
-    return last_particlefilter.filtered_particles[_it]._state;
+    return last_particlefilter.filtered_particles[it_]._state;
     //========================================================
 
 }

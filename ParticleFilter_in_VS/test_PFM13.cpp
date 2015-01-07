@@ -14,6 +14,7 @@
 #include <opencv2/video/tracking.hpp>
 
 #include "ParticleFilter.h"
+#include "ParticleFilterK.h"
 #include "EPViterbiMAP.h"
 #include "EPViterbiMAPAlpha.h"
 #include "pfMapMat.h"

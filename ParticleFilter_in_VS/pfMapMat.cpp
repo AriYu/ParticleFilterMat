@@ -38,9 +38,9 @@ void pfMapMat::Update(
                                      particle_filter._ObsNoiseMean);
 	sum = logsumexp(sum, p_yx_vec[i], (i==0));
     }
-    for(int i = 0; i < particle_filter._samples; i++){
-        p_yx_vec[i] = p_yx_vec[i] - sum;
-    }
+    // for(int i = 0; i < particle_filter._samples; i++){
+    //     p_yx_vec[i] = p_yx_vec[i] - sum;
+    // }
 
     for (int i = 0; i < particle_filter._samples; i++){
 	map[i] = 0.0;

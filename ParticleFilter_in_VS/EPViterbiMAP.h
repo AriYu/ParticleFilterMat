@@ -26,7 +26,7 @@ public:
 	virtual cv::Mat GetEstimation();
 
 protected:
-	bool _is_inited;
+	bool is_inited_;
 	ParticleFilterMat last_particlefilter;
 	std::vector<double> delta;
 	std::vector<double> last_delta;
@@ -34,7 +34,7 @@ protected:
 	std::vector<double> f_xx_vec;
 	std::vector<double> last_g_yx_vec;
 	std::vector<double> max;
-	int _it;
+	int it_;
 	std::ofstream epvgm_output;
 };
 
