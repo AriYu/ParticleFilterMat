@@ -202,7 +202,7 @@ static inline Point calcPoint(Point2f center, double R, double angle)
 
 void printParticle(cv::Mat &img, Point2f &center, float &R, ParticleFilterMat &pfm )
 {
-	int size = pfm._samples;
+	int size = pfm.samples_;
 	for (int i = 0; i < size; i++){
 		Mat particle = pfm.filtered_particles[i]._state;
 		double particleAngle = particle.at<double>(0, 0);

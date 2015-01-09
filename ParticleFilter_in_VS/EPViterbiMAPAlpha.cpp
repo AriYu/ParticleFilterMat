@@ -9,10 +9,10 @@ using namespace std;
 EPViterbiMatAlpha::EPViterbiMatAlpha(ParticleFilterMat &particle_filter)
 	: last_particlefilter(particle_filter), _is_inited(false)
 {
-	this->delta.resize(particle_filter._samples);
-	this->last_delta.resize(particle_filter._samples);
-        this->g_yx_vec.resize(particle_filter._samples);
-        this->f_xx_vec.resize(particle_filter._samples);
+	this->delta.resize(particle_filter.samples_);
+	this->last_delta.resize(particle_filter.samples_);
+        this->g_yx_vec.resize(particle_filter.samples_);
+        this->f_xx_vec.resize(particle_filter.samples_);
 #ifdef DEBUG
         epvgm_output.open("epvgm_a.dat", ios::out);
         if(!epvgm_output.is_open()){ std::cout << "epvgm output open failed" << endl;}
@@ -35,7 +35,7 @@ void EPViterbiMatAlpha::Initialization(
     //=============================================
     // calc g(y_1 | x_1[i])
     //=============================================
-    for (int i = 0; i < particle_filter._samples; i++){
+    for (int i = 0; i < particle_filter.samples_; i++){
         g_yx_vec[i] = particle_filter.filtered_particles[i]._weight;
     }
 
@@ -44,25 +44,25 @@ void EPViterbiMatAlpha::Initialization(
     // calc f(x_1[i])
     //=============================================
     sum = 0.0;
-    for (int i = 0; i < particle_filter._samples; i++){
+    for (int i = 0; i < particle_filter.samples_; i++){
         cv::Mat est_state
             = particle_filter.filtered_particles[i]._state;
         cv::Mat last_state = cv::Mat::zeros(est_state.rows, est_state.cols, CV_64F);
         f_xx_vec[i] = trans_likelihood(est_state, last_state, 
-                                 particle_filter._ProcessNoiseCov, 
-                                 particle_filter._ObsNoiseMean);
-        // f_xx_vec[i] = 1.0 / particle_filter._samples;
+                                 particle_filter.ProcessNoiseCov_, 
+                                 particle_filter.ObsNoiseMean_);
+        // f_xx_vec[i] = 1.0 / particle_filter.samples_;
         logsumexp(sum, f_xx_vec[i], (i==0));
         //sum += f_xx_vec[i];
     }
-    for(int i = 0; i< particle_filter._samples; i++){
+    for(int i = 0; i< particle_filter.samples_; i++){
         f_xx_vec[i] = f_xx_vec[i] - sum;
     }
 
 
     //=============================================
     // log(f(x)) + log(g(y1 | x1))
-    for(int i = 0; i < particle_filter._samples; i++){
+    for(int i = 0; i < particle_filter.samples_; i++){
         delta[i] = f_xx_vec[i] + g_yx_vec[i];
         last_delta[i] = 0.0;
         last_particlefilter.predict_particles[i]
@@ -72,7 +72,7 @@ void EPViterbiMatAlpha::Initialization(
     }
 
 #ifdef DEBUG
-    for (int i = 0; i < particle_filter._samples; i++){
+    for (int i = 0; i < particle_filter.samples_; i++){
         epvgm_output << i << " " 
                      << particle_filter.filtered_particles[i]._state.at<double>(0,0) << " " 
                      << delta[i] << endl;
@@ -103,16 +103,16 @@ void EPViterbiMatAlpha::Recursion(
         // ================================================
         // calc p(y_k | x_k)
         double sum = 0;
-        for(int i = 0; i < particle_filter._samples; i++){
+        for(int i = 0; i < particle_filter.samples_; i++){
             g_yx_vec[i] = particle_filter.filtered_particles[i]._weight;
             //cout << "g_yx_vec[" << i << "]" << g_yx_vec[i] << endl;
         }
 
-        for(int i = 0; i < particle_filter._samples; i++){
+        for(int i = 0; i < particle_filter.samples_; i++){
             // ================================================
             // calc p(x_k(i) | x_k-1(j))
             sum = 0.0;
-            for (int j = 0; j < particle_filter._samples; j++){
+            for (int j = 0; j < particle_filter.samples_; j++){
                 cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
                 cv::Mat est_state = particle_filter.filtered_particles[i]._state.clone();
                 processmodel(est_state, 
@@ -120,20 +120,20 @@ void EPViterbiMatAlpha::Recursion(
                              ctrl_input, rnd_num);
                 f_xx_vec[j] = trans_likelihood(est_state,
                                                particle_filter.filtered_particles[i]._state,
-                                               particle_filter._ProcessNoiseCov,
-                                               particle_filter._ProcessNoiseMean);
+                                               particle_filter.ProcessNoiseCov_,
+                                               particle_filter.ProcessNoiseMean_);
                 sum = logsumexp(sum, f_xx_vec[j], (j == 0));
             }
             //cout << "sum : " << sum << endl;
             // ===============================================
             // p(x_k(i) | x_k-1(j))の正規化
-            for(int j = 0; j < particle_filter._samples; j++){
+            for(int j = 0; j < particle_filter.samples_; j++){
                 f_xx_vec[j] = f_xx_vec[j] - sum;
             }
 
             // ===============================================
             // Search max(delta_k-1 + log(p(x_k(i) | x_k-1(j))))
-            for(int j = 0; j < particle_filter._samples; j++){
+            for(int j = 0; j < particle_filter.samples_; j++){
                 if (j == 0){
                     max = last_delta[j] + f_xx_vec[j];
                     delta[i] = g_yx_vec[i] + max;
@@ -150,7 +150,7 @@ void EPViterbiMatAlpha::Recursion(
 
 
 
-        for (int i = 0; i < particle_filter._samples; i++){
+        for (int i = 0; i < particle_filter.samples_; i++){
             last_delta[i] = delta[i];
             last_particlefilter.predict_particles[i]
                 = particle_filter.predict_particles[i];
@@ -174,7 +174,7 @@ cv::Mat EPViterbiMatAlpha::GetEstimation()
 {
     //=====================================================
     double max = 0;	
-    for (int i = 0; i < last_particlefilter._samples; i++){
+    for (int i = 0; i < last_particlefilter.samples_; i++){
         if (i == 0){
             max = delta[0];
             _it = i;

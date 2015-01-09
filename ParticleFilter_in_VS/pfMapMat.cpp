@@ -12,9 +12,9 @@ pfMapMat::~pfMapMat()
 void pfMapMat::Initialization(
 	ParticleFilterMat &particle_filter)
 {
-	map.resize(particle_filter._samples);
-        p_xx_vec.resize(particle_filter._samples);
-        p_yx_vec.resize(particle_filter._samples);
+	map.resize(particle_filter.samples_);
+        p_xx_vec.resize(particle_filter.samples_);
+        p_yx_vec.resize(particle_filter.samples_);
 }
 
 
@@ -28,40 +28,39 @@ void pfMapMat::Update(
     const cv::Mat &observed)
 {
     double sum = 0.0;
-    for(int i = 0; i < particle_filter._samples; i++){
+    for(int i = 0; i < particle_filter.samples_; i++){
 	cv::Mat obshat = observed.clone();
 	cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
 
 	obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
 	p_yx_vec[i] = obs_likelihood(observed, obshat, 
-                                     particle_filter._ObsNoiseCov, 
-                                     particle_filter._ObsNoiseMean);
-	sum = logsumexp(sum, p_yx_vec[i], (i==0));
+                                     particle_filter.ObsNoiseCov_, 
+                                     particle_filter.ObsNoiseMean_);
+	//sum = logsumexp(sum, p_yx_vec[i], (i==0));
     }
-    // for(int i = 0; i < particle_filter._samples; i++){
+    // for(int i = 0; i < particle_filter.samples_; i++){
     //     p_yx_vec[i] = p_yx_vec[i] - sum;
     // }
 
-    for (int i = 0; i < particle_filter._samples; i++){
+    for (int i = 0; i < particle_filter.samples_; i++){
 	map[i] = 0.0;
 	sum = 0.0;
-	for(int j = 0; j < particle_filter._samples; j++){
+	for(int j = 0; j < particle_filter.samples_; j++){
             cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
             cv::Mat est_state = particle_filter.filtered_particles[j]._state.clone();
             processmodel(est_state, last_particlefilter.filtered_particles[j]._state, 
                          ctrl_input, rnd_num);
             p_xx_vec[j] = trans_likelihood(est_state,
                                            particle_filter.filtered_particles[i]._state,
-                                           particle_filter._ProcessNoiseCov,
-                                           particle_filter._ProcessNoiseMean);
-            sum = logsumexp(sum, p_xx_vec[j], (j == 0));
+                                           particle_filter.ProcessNoiseCov_,
+                                           particle_filter.ProcessNoiseMean_);
+            //sum = logsumexp(sum, p_xx_vec[j], (j == 0));
 	}
-	// for(int j = 0; j < particle_filter._samples; j++){
+	// for(int j = 0; j < particle_filter.samples_; j++){
         //     p_xx_vec[j] = p_xx_vec[j] - sum;
  	// }
-	sum = 0;
-	double tmp = 0;
-	for (int j = 0; j < particle_filter._samples; j++){
+        double tmp = 0;
+	for (int j = 0; j < particle_filter.samples_; j++){
             tmp = (p_xx_vec[j] + last_particlefilter.filtered_particles[j]._weight );
             map[i] += exp(tmp);
 	}

@@ -244,7 +244,7 @@ int main(void) {
 		pfm.Resampling(measurement);
 
 #ifdef PARTICLE_IO
-        for (int i = 0; i < pfm._samples; i++){
+        for (int i = 0; i < pfm.samples_; i++){
             particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " << pfm.filtered_particles[i]._state.at<double>(1,0) << " " << exp(pfm.filtered_particles[i]._weight) << endl;
         }
         particles_file << endl; particles_file << endl;

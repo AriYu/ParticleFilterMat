@@ -231,7 +231,7 @@ int main(void) {
         pfm.CalcLikelihood(observation, Obs_likelihood, measurement);
 
 #ifdef PARTICLE_IO
-        for (int i = 0; i < pfm._samples; i++){
+        for (int i = 0; i < pfm.samples_; i++){
             particles_file << k << " " << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " << pfm.filtered_particles[i]._weight << endl;
         }
         particles_file << endl; particles_file << endl;

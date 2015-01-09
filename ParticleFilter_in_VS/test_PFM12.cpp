@@ -22,7 +22,7 @@
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
-#define NumOfParticle 100
+#define NumOfParticle 1000
 #define ESSth NumOfParticle / 2.0
 
 using namespace std;
@@ -143,11 +143,11 @@ int main(void) {
         // Set for Particle filter Mat
         // ==============================
         cv::Mat A       = (cv::Mat_<double>(2, 2) << 1.0, 1.0, 0, 1.0);
-        std::cout << "A = " << A << std::endl << std::endl;
+        // std::cout << "A = " << A << std::endl << std::endl;
         cv::Mat B       = (cv::Mat_<double>(2, 2) << 0, 0, 0, 0);
-        std::cout << "B = " << B << std::endl << std::endl;
+        // std::cout << "B = " << B << std::endl << std::endl;
         cv::Mat C       = (cv::Mat_<double>(2, 1) << 1, 0);
-        std::cout << "C = " << C << std::endl << std::endl;
+        // std::cout << "C = " << C << std::endl << std::endl;
 	//! A : 状態遷移行列, B : 制御入力, C : 観測行列, dimX : 状態ベクトルの次元数
         ParticleFilterMat pfm(A, B, C, 1);
         pfm.SetProcessNoise(ProcessCov, ProcessMean);
@@ -182,10 +182,11 @@ int main(void) {
         RMSE pfmap_rmse;
         RMSE obs_rmse;
 
-        cv::RNG rng(-1);            // random generater
+        cv::RNG rng((unsigned)time(NULL));            // random generater
         
         double input = 0.0;
 
+        std::cout << "\rloop == " << loop  << endl;
         for (k = 0; k < T;k += 1.0){
             std::cout << "\rloop == " << loop << "\tk == " << k << "\r" << endl;
 
@@ -225,7 +226,7 @@ int main(void) {
 
 
 #ifdef PARTICLE_IO
-            for (int i = 0; i < pfm._samples; i++){
+            for (int i = 0; i < pfm.samples_; i++){
                 particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " 
                                << exp(pfm.filtered_particles[i]._weight) << endl;
             }

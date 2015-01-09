@@ -82,18 +82,18 @@ public :
 	virtual cv::Mat GetML();
 
 public : 
-	cv::Mat _A; 
-	cv::Mat _B;
-	cv::Mat _C;
-	cv::Mat _ProcessNoiseCov;	// process noise の共分散行列
-	cv::Mat _ObsNoiseCov;		// observation noise の共分散行列
-	cv::Mat _ProcessNoiseMean;	// process noise の平均
-	cv::Mat _ObsNoiseMean;		// observation noise の平均
-	bool _isSetProcessNoise;
-	bool _isSetObsNoise;
-	int _dimX;	// 状態ベクトルの次元数
-	int _samples; // パーティクルの数
-	bool _isResampled;
+	cv::Mat A_; 
+	cv::Mat B_;
+	cv::Mat C_;
+	cv::Mat ProcessNoiseCov_;	// process noise の共分散行列
+	cv::Mat ObsNoiseCov_;		// observation noise の共分散行列
+	cv::Mat ProcessNoiseMean_;	// process noise の平均
+	cv::Mat ObsNoiseMean_;		// observation noise の平均
+	bool isSetProcessNoise_;
+	bool isSetObsNoise_;
+	int dimX_;	// 状態ベクトルの次元数
+	int samples_; // パーティクルの数
+	bool isResampled_;
 	std::vector< PStateMat > predict_particles;
 	std::vector< PStateMat > filtered_particles;
 };
