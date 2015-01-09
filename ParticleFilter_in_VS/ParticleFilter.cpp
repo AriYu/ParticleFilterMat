@@ -411,66 +411,66 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
     ESS = 1.0 / tmp;
 
     if ((ESS < (samples_ / ESSth))){ // do resampling
-        //cout << "[Resampled] ESS : " << ESS << " / " << samples_ / ESSth << endl;
+        cout << "[Resampled] ESS : " << ESS << " / " << samples_ / ESSth << endl;
         isResampled_ = true;
         // -------------- prSystematic --------------
-        int i = 0;
-        double c = exp(filtered_particles[0]._weight);
-        double r = dist(engine) / (double)samples_;
-        for (int m = 0; m < samples_; m++){
-            double U = r + ((double)m) * mean;
-            while (U > c){
-                i = i + 1;
-                c = c + exp(filtered_particles[i]._weight);
-            }
-            predict_particles[m]._state = filtered_particles[i]._state;
-            predict_particles[m]._weight = log(mean);
-        }
+        // int i = 0;
+        // double c = exp(filtered_particles[0]._weight);
+        // double r = dist(engine) / (double)samples_;
+        // for (int m = 0; m < samples_; m++){
+        //     double U = r + ((double)m) * mean;
+        //     while (U > c){
+        //         i = i + 1;
+        //         c = c + exp(filtered_particles[i]._weight);
+        //     }
+        //     predict_particles[m]._state = filtered_particles[i]._state;
+        //     predict_particles[m]._weight = log(mean);
+        // }
         //---------------------------------------------------
 
         // -------------- prMultinomial --------------
-        // vector<double> linW(samples_, 0);
-        // double linW_SUM = 0.0;
-        // for (int i = 0; i < samples_; i++){
-        //     linW_SUM += exp(filtered_particles[i]._weight);
-        // }
-        // // Normalize weights:
-        // assert(linW_SUM > 0);
-        // for (int i = 0; i < samples_; i++){
-        //     linW[i] *= 1.0 / linW_SUM;
-        // }
-        // vector<double> Q(samples_);//累積重み
-        // {
-        //     double last = 0.0;
-        //     const size_t N = linW.size();
-        //     for (size_t i = 0; i < N; i++){
-        //         last = Q[i] = last + exp(filtered_particles[i]._weight);
-        //     }
-        // }
-        // Q[samples_ - 1] = 1.1;
-        // vector<double> T(samples_);
-        // std::uniform_real_distribution<> rndm(0.0, 0.999999);
-        // for (int i = 0; i < samples_; i++){
-        //     T[i] = rndm(engine);
-        // }
-        // T.push_back(1.0);
-        // sort(T.begin(), T.end());
-        // int i = 0;
-        // int j = 0;
-        // while (i < samples_)
-        // {
-        //     if (T[i] < Q[j]){
-        //         predict_particles[i]._state = filtered_particles[j]._state;
-        //         predict_particles[i]._weight = log(mean);
-        //         i++;
-        //     }
-        //     else{
-        //         j++;
-        //         if (j >= samples_){
-        //             j = samples_ - 1;
-        //         }
-        //     }
-        // }
+        vector<double> linW(samples_, 0);
+        double linW_SUM = 0.0;
+        for (int i = 0; i < samples_; i++){
+            linW_SUM += exp(filtered_particles[i]._weight);
+        }
+        // Normalize weights:
+        assert(linW_SUM > 0);
+        for (int i = 0; i < samples_; i++){
+            linW[i] *= 1.0 / linW_SUM;
+        }
+        vector<double> Q(samples_);//累積重み
+        {
+            double last = 0.0;
+            const size_t N = linW.size();
+            for (size_t i = 0; i < N; i++){
+                last = Q[i] = last + exp(filtered_particles[i]._weight);
+            }
+        }
+        Q[samples_ - 1] = 1.1;
+        vector<double> T(samples_);
+        std::uniform_real_distribution<> rndm(0.0, 0.999999);
+        for (int i = 0; i < samples_; i++){
+            T[i] = rndm(engine);
+        }
+        T.push_back(1.0);
+        sort(T.begin(), T.end());
+        int i = 0;
+        int j = 0;
+        while (i < samples_)
+        {
+            if (T[i] < Q[j]){
+                predict_particles[i]._state = filtered_particles[j]._state;
+                predict_particles[i]._weight = log(mean);
+                i++;
+            }
+            else{
+                j++;
+                if (j >= samples_){
+                    j = samples_ - 1;
+                }
+            }
+        }
         //---------------------------------------------------------
     }
     else{ // do not resampling

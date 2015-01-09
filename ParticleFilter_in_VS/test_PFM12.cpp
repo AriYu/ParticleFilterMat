@@ -23,8 +23,7 @@
 
 #define NumOfIterate 1
 #define NumOfParticle 1000
-#define ESSth NumOfParticle / 2.0
-
+#define ESSth 2
 using namespace std;
 using namespace cv;
 
@@ -137,6 +136,10 @@ int main(void) {
         particles_file.open("result_particle.dat", ios::out);
         if (!particles_file.is_open()){ 
             std::cout << "open result_particle output failed" << endl; return -1; }
+        ofstream particles_after_file; // k, x, weight
+        particles_after_file.open("result_after_particle.dat", ios::out);
+        if (!particles_after_file.is_open()){ 
+            std::cout << "open result_particle output failed" << endl; return -1; }
 #endif // PARTICLE_IO
 
         // ==============================
@@ -208,9 +211,25 @@ int main(void) {
             // Particle Filter Process
             // ==============================
             pfm.Sampling(process, input);            
+
             pfm.CalcLikelihood(observation, Obs_likelihood, measurement);
+#ifdef PARTICLE_IO
+            for (int i = 0; i < pfm.samples_; i++){
+                particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " 
+                               << exp(pfm.filtered_particles[i]._weight) << endl;
+            }
+            particles_file << endl; particles_file << endl;
+#endif // PARTICLE_IO
+
             pfm.Resampling(measurement, ESSth);
 
+#ifdef PARTICLE_IO
+            for (int i = 0; i < pfm.samples_; i++){
+                particles_after_file << pfm.predict_particles[i]._state.at<double>(0, 0) << " " 
+                               << exp(pfm.filtered_particles[i]._weight) << endl;
+            }
+            particles_after_file << endl; particles_after_file << endl;
+#endif // PARTICLE_IO
            
             // ==============================
             // EP-VGM Process
@@ -225,13 +244,6 @@ int main(void) {
                          Obs_likelihood, Trans_likelihood, input, measurement);
 
 
-#ifdef PARTICLE_IO
-            for (int i = 0; i < pfm.samples_; i++){
-                particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " 
-                               << exp(pfm.filtered_particles[i]._weight) << endl;
-            }
-            particles_file << endl; particles_file << endl;
-#endif // PARTICLE_IO
 
     
 
