@@ -241,11 +241,7 @@ int main(void) {
             // Particle Based MAP Process
             // ==============================
             pfmap.Update(pfm, process, observation, 
-                         Obs_likelihood, Trans_likelihood, input, measurement);
-
-
-
-    
+                         Obs_likelihood, Trans_likelihood, input, measurement);    
 
             // ==============================
             // Get Estimation
