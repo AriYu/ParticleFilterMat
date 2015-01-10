@@ -298,6 +298,7 @@ int main(void) {
         ave_epvgm += epvgm_rmse.getRMSE();
         ave_pfmap += pfmap_rmse.getRMSE();
         ave_ml    += ml_rmse.getRMSE();
+		
     }
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
     std::cout << "nonlinear, multimodal model" << endl;
