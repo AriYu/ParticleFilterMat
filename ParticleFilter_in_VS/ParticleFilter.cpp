@@ -511,7 +511,7 @@ cv::Mat ParticleFilterMat::GetMMSE()
 {
   int num_of_dimension = 1;
   double sigma = 0.1;
-  const double clustering_threshold = 3;
+  const double clustering_threshold = ProcessNoiseCov_.at<double>(0,0);
   std::vector<int> indices;
   MeanShiftClustering cluster(predict_particles, num_of_dimension, sigma);
   int num_of_cluster = cluster.Clustering(indices, clustering_threshold);

@@ -30,7 +30,7 @@ using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 2.0;          //! loop limit
+const double T = 50.0;          //! loop limit
 
 //----------------------------
 // Process Equation
