@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////
 // This Program is test for ParticleFilterMat.
-// - Random walk model
-// - x(k) = x(k-1) + v(k)
-// - y(k) = x(k) + w(k)
+// nonlinear, multimodal model
+// - x(k) = 0.5*x(k-1) + 25*( x(k-1) / (1.0 + x(k-1)*x(k-1)) ) + 8*cos(1.2k) +v(k)
+// - y(k) = ( x(k)*x(k) ) / 20 + w(k)
 ///////////////////////////////////////////////
 
 #include <iostream>
@@ -19,6 +19,8 @@
 
 #include "RootMeanSquareError.h"
 
+#include "mean_shift_clustering.h"
+
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
@@ -28,7 +30,7 @@ using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 100.0;          //! loop limit
+const double T = 2.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -97,7 +99,7 @@ int main(void) {
     double ave_ml = 0;
     double ave_epvgm = 0;
     double ave_pfmap = 0;
-
+	
     // ==============================
     // Set Process Noise
     // ==============================
@@ -140,6 +142,13 @@ int main(void) {
         particles_after_file.open("result_after_particle.dat", ios::out);
         if (!particles_after_file.is_open()){ 
             std::cout << "open result_particle output failed" << endl; return -1; }
+		std::vector<ofstream> clustered_file((int)T); // k, x, weight
+		for(int i = 0; i < (int)T; i++){
+		  string filename = "clustered_files/clustered_" + std::to_string(i) + ".dat";
+		  clustered_file[i].open(filename.c_str(), ios::out);
+		  if (!clustered_file[i].is_open()){ 
+            std::cout << "open clustered failed" << endl; return -1; }
+		}
 #endif // PARTICLE_IO
 
         // ==============================
@@ -151,7 +160,7 @@ int main(void) {
         // std::cout << "B = " << B << std::endl << std::endl;
         cv::Mat C       = (cv::Mat_<double>(2, 1) << 1, 0);
         // std::cout << "C = " << C << std::endl << std::endl;
-	//! A : 状態遷移行列, B : 制御入力, C : 観測行列, dimX : 状態ベクトルの次元数
+		//! A : 状態遷移行列, B : 制御入力, C : 観測行列, dimX : 状態ベクトルの次元数
         ParticleFilterMat pfm(A, B, C, 1);
         pfm.SetProcessNoise(ProcessCov, ProcessMean);
         pfm.SetObservationNoise(ObsCov, ObsMean);
@@ -213,10 +222,11 @@ int main(void) {
             pfm.Sampling(process, input);            
 
             pfm.CalcLikelihood(observation, Obs_likelihood, measurement);
+
 #ifdef PARTICLE_IO
             for (int i = 0; i < pfm.samples_; i++){
-                particles_file << pfm.filtered_particles[i]._state.at<double>(0, 0) << " " 
-                               << exp(pfm.filtered_particles[i]._weight) << endl;
+                particles_file << pfm.filtered_particles[i].state_.at<double>(0, 0) << " " 
+                               << exp(pfm.filtered_particles[i].weight_) << endl;
             }
             particles_file << endl; particles_file << endl;
 #endif // PARTICLE_IO
@@ -225,8 +235,8 @@ int main(void) {
 
 #ifdef PARTICLE_IO
             for (int i = 0; i < pfm.samples_; i++){
-                particles_after_file << pfm.predict_particles[i]._state.at<double>(0, 0) << " " 
-                               << exp(pfm.filtered_particles[i]._weight) << endl;
+                particles_after_file << pfm.predict_particles[i].state_.at<double>(0, 0) << " " 
+                               << exp(pfm.filtered_particles[i].weight_) << endl;
             }
             particles_after_file << endl; particles_after_file << endl;
 #endif // PARTICLE_IO
@@ -244,9 +254,6 @@ int main(void) {
                          Obs_likelihood, Trans_likelihood, input, measurement);
 
 
-
-    
-
             // ==============================
             // Get Estimation
             // ==============================
@@ -258,7 +265,19 @@ int main(void) {
             double predict_x_ml    = predictionML.at<double>(0, 0);
             Mat    predictionPFMAP = pfmap.GetEstimation();
             double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
-
+			// ------------------------------
+			std::vector<int> indices = pfm.GetClusteringEstimation();
+			#ifdef PARTICLE_IO
+			for(int cluster = 0; cluster < indices.size(); cluster++){
+			  for(int number = 0; number < NumOfParticle; number++){
+				if(cluster == indices[number]){
+				  clustered_file[k] << pfm.predict_particles[number].state_.at<double>(0,0) 
+									<< " " << 0.0 << endl;
+				}
+			  }
+			  clustered_file[k] << endl; clustered_file[k] << endl;
+			}
+			#endif
             // ==============================
             // for RMSE
             // ==============================
@@ -283,7 +302,7 @@ int main(void) {
 
             last_state = state;
 
-            
+            cout << endl;
         }
 
         mmse_rmse.calculationRMSE();

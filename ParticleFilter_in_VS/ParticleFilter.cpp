@@ -1,4 +1,6 @@
 #include "ParticleFilter.h"
+#include "mean_shift_clustering.h"
+
 #include <algorithm>
 using namespace std;
 
@@ -149,6 +151,7 @@ ParticleFilterMat::ParticleFilterMat(cv::Mat A, cv::Mat B, cv::Mat C, int dimX)
 	//assert(C_.cols == dimX_);
 }
 
+
 ParticleFilterMat::ParticleFilterMat(const ParticleFilterMat& x)
 {
 	this->A_ = x.A_.clone();
@@ -163,6 +166,7 @@ ParticleFilterMat::ParticleFilterMat(const ParticleFilterMat& x)
 	this->isSetProcessNoise_ = x.isSetProcessNoise_;
 	this->isSetObsNoise_ = x.isSetObsNoise_;
 
+	//	this->indices_.resize(samples_);
 	this->predict_particles.resize(x.predict_particles.size());
 	std::copy(x.predict_particles.begin(),
 		x.predict_particles.end(),
@@ -189,6 +193,8 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 	samples_ = samples;
 	assert(samples_ > 0);
 
+
+
 	this->predict_particles.reserve(samples_);
 	this->filtered_particles.reserve(samples_);
 	PStateMat particle(dimX_, log(1.0 / samples_));
@@ -204,12 +210,12 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 		normal_distribution<> sigma(initMean.at<double>(j, 0)
 			, sqrt(initCov.at<double>(j, 0)));
 		for (int i = 0; i < samples_; i++){
-			filtered_particles[i]._state.at<double>(j, 0)
+			filtered_particles[i].state_.at<double>(j, 0)
 				= sigma(engine);
-			filtered_particles[i]._weight = log((1.0 / (double)samples_));
-			predict_particles[i]._state.at<double>(j, 0)
+			filtered_particles[i].weight_ = log((1.0 / (double)samples_));
+			predict_particles[i].state_.at<double>(j, 0)
 				= sigma(engine);
-			predict_particles[i]._weight = log((1.0 / (double)samples_));
+			predict_particles[i].weight_ = log((1.0 / (double)samples_));
 		}
 	}
 
@@ -241,15 +247,15 @@ void ParticleFilterMat::Sampling(double input)
 		normal_distribution<> sigma(ProcessNoiseMean_.at<double>(j, 0)
 			, sqrt(ProcessNoiseCov_.at<double>(j, 0)));
 		for (int i = 0; i < samples_; i++){
-			predict_particles[i]._state.at<double>(j, 0)
+			predict_particles[i].state_.at<double>(j, 0)
 				+= sigma(engine);
 		}
 	}
 	// 状態遷移
 	for (int i = 0; i < samples_; i++){
-		filtered_particles[i]._state
-                    = ((A_ * predict_particles[i]._state) + (B_ * input));
-		filtered_particles[i]._weight = predict_particles[i]._weight;
+		filtered_particles[i].state_
+                    = ((A_ * predict_particles[i].state_) + (B_ * input));
+		filtered_particles[i].weight_ = predict_particles[i].weight_;
 	}
 	//// ノイズを加える
 	//for (int j = 0; j < dimX_; j++)
@@ -264,13 +270,14 @@ void ParticleFilterMat::Sampling(double input)
 }
 
 void ParticleFilterMat::Sampling(
-    void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd),
+    void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, const double &input, 
+						const cv::Mat &rnd),
     const double &ctrl_input)
 {
     static random_device rdev;
     static mt19937 engine(rdev());
 
-    cv::Mat rnd_num = filtered_particles[0]._state.clone();
+    cv::Mat rnd_num = filtered_particles[0].state_.clone();
 	
     for (int i = 0; i < samples_; i++){
         for (int r = 0; r < rnd_num.rows; ++r){
@@ -282,11 +289,11 @@ void ParticleFilterMat::Sampling(
         }
 
         processmodel(
-            filtered_particles[i]._state,
-            predict_particles[i]._state,
+            filtered_particles[i].state_,
+            predict_particles[i].state_,
             ctrl_input,
             rnd_num);
-        filtered_particles[i]._weight = predict_particles[i]._weight;
+        filtered_particles[i].weight_ = predict_particles[i].weight_;
     }
 }
 
@@ -310,7 +317,7 @@ void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
         //====================================
         // calculate p(y_k | x~_k)
         //====================================
-        estimate_obs = C_.t() * filtered_particles[i]._state;
+        estimate_obs = C_.t() * filtered_particles[i].state_;
         estimate_error = observed - estimate_obs;
         for (int ii = 0; ii < estimate_error.rows; ii++)
         {
@@ -331,10 +338,10 @@ void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
                 cnt += 1.0;
             }
         }
-        filtered_particles[i]._weight *= (weightsum / cnt);
+        filtered_particles[i].weight_ *= (weightsum / cnt);
 
         //sum = logsumexp(sum, l[i], (i == 0));
-        sum += filtered_particles[i]._weight;
+        sum += filtered_particles[i].weight_;
         //l[i] = 0;
     }
 
@@ -344,14 +351,15 @@ void ParticleFilterMat::CalcLikehood(double input, cv::Mat observed)
     for (int i = 0; i < samples_; i++)
     {
         //filtered_particles[i]._weight = exp(l[i] - sum);
-        filtered_particles[i]._weight = filtered_particles[i]._weight / sum;
+        filtered_particles[i].weight_ = filtered_particles[i].weight_ / sum;
     }
 }
 
 
 void ParticleFilterMat::CalcLikelihood(
     void(*obsmodel)(cv::Mat &z, const  cv::Mat &x, const cv::Mat &rnd),
-    double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean),
+    double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, 
+						const cv::Mat &mean),
     const cv::Mat &observed)
 {
     static random_device rdev;
@@ -362,7 +370,7 @@ void ParticleFilterMat::CalcLikelihood(
     cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
     vector<double> l(samples_); // 対数重み
     for (int i = 0; i < samples_; i++){
-        obsmodel(obshat, filtered_particles[i]._state, rnd_num);
+        obsmodel(obshat, filtered_particles[i].state_, rnd_num);
         l[i] = likelihood(observed, obshat, ObsNoiseCov_, ObsNoiseMean_);
         sum = logsumexp(sum, l[i], (i==0));
     }
@@ -374,12 +382,12 @@ void ParticleFilterMat::CalcLikelihood(
     for (int i = 0; i < samples_; i++)
     {
         l[i] = l[i] - sum; // Normalize weights
-        filtered_particles[i]._weight += l[i];
-        sum2 = logsumexp(sum2, filtered_particles[i]._weight, (i == 0));
+        filtered_particles[i].weight_ += l[i];
+        sum2 = logsumexp(sum2, filtered_particles[i].weight_, (i == 0));
     }
     for (int i = 0; i < samples_; i++)
     {
-        filtered_particles[i]._weight = filtered_particles[i]._weight - sum2;
+        filtered_particles[i].weight_ = filtered_particles[i].weight_ - sum2;
     }
 
 }
@@ -406,7 +414,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
     double ESS = 0;
     double tmp = 0;
     for (int i = 0; i < samples_; i++){
-        tmp += pow(exp(filtered_particles[i]._weight), 2.0);
+        tmp += pow(exp(filtered_particles[i].weight_), 2.0);
     }
     ESS = 1.0 / tmp;
 
@@ -432,7 +440,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
         vector<double> linW(samples_, 0);
         double linW_SUM = 0.0;
         for (int i = 0; i < samples_; i++){
-            linW_SUM += exp(filtered_particles[i]._weight);
+            linW_SUM += exp(filtered_particles[i].weight_);
         }
         // Normalize weights:
         assert(linW_SUM > 0);
@@ -444,7 +452,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
             double last = 0.0;
             const size_t N = linW.size();
             for (size_t i = 0; i < N; i++){
-                last = Q[i] = last + exp(filtered_particles[i]._weight);
+                last = Q[i] = last + exp(filtered_particles[i].weight_);
             }
         }
         Q[samples_ - 1] = 1.1;
@@ -460,8 +468,8 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
         while (i < samples_)
         {
             if (T[i] < Q[j]){
-                predict_particles[i]._state = filtered_particles[j]._state;
-                predict_particles[i]._weight = log(mean);
+                predict_particles[i].state_ = filtered_particles[j].state_;
+                predict_particles[i].weight_ = log(mean);
                 i++;
             }
             else{
@@ -491,27 +499,41 @@ cv::Mat ParticleFilterMat::GetMMSE()
         mmse.at<double>(j, 0) = 0.0;
         for (int i = 0; i < samples_; i++)
         {
-            tmp = (filtered_particles[i]._state.at<double>(j, 0) 
-                   * exp(filtered_particles[i]._weight));
+            tmp = (filtered_particles[i].state_.at<double>(j, 0) 
+                   * exp(filtered_particles[i].weight_));
             mmse.at<double>(j, 0) += tmp;
         }
     }
     return mmse;
 }
 
+ std::vector<int> ParticleFilterMat::GetClusteringEstimation()
+{
+  int num_of_dimension = 1;
+  double sigma = 0.1;
+  const double clustering_threshold = 3;
+  std::vector<int> indices;
+  MeanShiftClustering cluster(predict_particles, num_of_dimension, sigma);
+  int num_of_cluster = cluster.Clustering(indices, clustering_threshold);
+  cout << "num_of_cluster : " << num_of_cluster << endl;
+  //return num_of_cluster;
+  return indices;
+  //return cv::Mat_<double>(dimX_, 1);
+}
+
 cv::Mat ParticleFilterMat::GetML()
 {
-	double max = filtered_particles[0]._weight;
+	double max = filtered_particles[0].weight_;
 	cv::Mat ml = cv::Mat_<double>(dimX_, 1);
 	int num = 0;
 	for (int i = 1; i < samples_; i++){
-		if (max < filtered_particles[i]._weight){
-			max = filtered_particles[i]._weight;
+		if (max < filtered_particles[i].weight_){
+			max = filtered_particles[i].weight_;
 			num = i;
 		}
 	}
 	for (int i = 0; i < dimX_; i++){
-		ml.at < double >(i, 0) = filtered_particles[num]._state.at<double>(i, 0);
+		ml.at < double >(i, 0) = filtered_particles[num].state_.at<double>(i, 0);
 	}
 	return ml;
 }

@@ -1,9 +1,8 @@
 ///////////////////////////////////////////////
-//
 // This Program is test for ParticleFilterMat.
-// - Random walk model
-// - x(k) = x(k-1) + v(k)
-// - y(k) = x(k) + w(k)
+//  nonlinear, mono modal model
+// - x(k) = x(k-1) + 3.0 * cos(x(k-1)/10.0) + v(k)
+// - y(k) = x(k)*x(k)*x(k) /  + w(k)
 ///////////////////////////////////////////////
 
 #include <iostream>
@@ -39,7 +38,7 @@ const double T = 200.0;         //! loop limit
 //! rnd		: process noise
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
-    x.at<double>(0, 0) =  xpre.at<double>(0, 0) + 3.0*cos(xpre.at<double>(0,0)/10.0) + rnd.at<double>(0, 0);
+    x.at<double>(0, 0) = xpre.at<double>(0, 0) + 3.0*cos(xpre.at<double>(0,0)/10.0) + rnd.at<double>(0, 0);
   
 }
 //-------------------------

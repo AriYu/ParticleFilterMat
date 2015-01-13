@@ -41,7 +41,7 @@ void EPViterbiMat::Initialization(
 	cv::Mat obshat = observed.clone();
 	cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
 
-	obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
+	obsmodel(obshat, particle_filter.filtered_particles[i].state_, rnd_num);
 	g_yx_vec[i] = obs_likelihood(observed,
                                      obshat, 
                                      particle_filter.ObsNoiseCov_, 
@@ -62,7 +62,7 @@ void EPViterbiMat::Initialization(
     sum = 0.0;
     for (int i = 0; i < particle_filter.samples_; i++){
 	cv::Mat est_state
-            = particle_filter.filtered_particles[i]._state;
+            = particle_filter.filtered_particles[i].state_;
 	cv::Mat last_state = cv::Mat::zeros(est_state.rows, est_state.cols, CV_64F);
 	f_xx_vec[i] = trans_likelihood(est_state, last_state, 
                                        particle_filter.ProcessNoiseCov_, 
@@ -86,7 +86,7 @@ void EPViterbiMat::Initialization(
             = particle_filter.filtered_particles[i];
 #ifdef DEBUG
 	epvgm_output << i << " " 
-                     << particle_filter.filtered_particles[i]._state.at<double>(0,0) << " " 
+                     << particle_filter.filtered_particles[i].state_.at<double>(0,0) << " " 
                      << g_yx_vec[i] << " "
                      << last_delta[i] << " "
                      << 0 << " " // max
@@ -131,7 +131,7 @@ void EPViterbiMat::Recursion(
         for(int i = 0; i < particle_filter.samples_; i++){
             cv::Mat obshat = observed.clone();
             cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-            obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
+            obsmodel(obshat, particle_filter.filtered_particles[i].state_, rnd_num);
             g_yx_vec[i] = obs_likelihood(observed, 
                                          obshat, 
                                          particle_filter.ObsNoiseCov_, 
@@ -150,12 +150,12 @@ void EPViterbiMat::Recursion(
             sum = 0.0;
             for (int j = 0; j < particle_filter.samples_; j++){
                 cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-                cv::Mat est_state = particle_filter.filtered_particles[i]._state.clone();
+                cv::Mat est_state = particle_filter.filtered_particles[i].state_.clone();
                 processmodel(est_state, 
-                             last_particlefilter.filtered_particles[j]._state, 
+                             last_particlefilter.filtered_particles[j].state_, 
                              ctrl_input, rnd_num);
                 f_xx_vec[j] = trans_likelihood(est_state,
-                                               particle_filter.filtered_particles[i]._state,
+                                               particle_filter.filtered_particles[i].state_,
                                                particle_filter.ProcessNoiseCov_,
                                                particle_filter.ProcessNoiseMean_);
                 sum = logsumexp(sum, f_xx_vec[j], (j==0));
@@ -202,7 +202,7 @@ void EPViterbiMat::Recursion(
         for (int i = 0; i < particle_filter.samples_; i++){
 #ifdef DEBUG
             epvgm_output << i << " " // [1]
-                         << particle_filter.filtered_particles[i]._state.at<double>(0,0) << " " 
+                         << particle_filter.filtered_particles[i].state_.at<double>(0,0) << " " 
                          << g_yx_vec[i] << " " //[3]
                          << last_delta[i] << " " //[4]
                          << max[i] << " "//[5]
@@ -212,8 +212,8 @@ void EPViterbiMat::Recursion(
 #endif // DEBUG
             last_g_yx_vec[i] = g_yx_vec[i];
             last_delta[i] = delta[i];
-            last_particlefilter.filtered_particles[i]._weight
-                = particle_filter.filtered_particles[i]._weight;
+            last_particlefilter.filtered_particles[i].weight_
+                = particle_filter.filtered_particles[i].weight_;
             last_particlefilter.predict_particles[i]
                 = particle_filter.predict_particles[i];
             last_particlefilter.filtered_particles[i]
@@ -244,7 +244,7 @@ cv::Mat EPViterbiMat::GetEstimation()
             }
     	}
     }
-    return last_particlefilter.filtered_particles[it_]._state;
+    return last_particlefilter.filtered_particles[it_].state_;
     //========================================================
 
 }

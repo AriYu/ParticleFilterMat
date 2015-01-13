@@ -32,7 +32,7 @@ void pfMapMat::Update(
 	cv::Mat obshat = observed.clone();
 	cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
 
-	obsmodel(obshat, particle_filter.filtered_particles[i]._state, rnd_num);
+	obsmodel(obshat, particle_filter.filtered_particles[i].state_, rnd_num);
 	p_yx_vec[i] = obs_likelihood(observed, obshat, 
                                      particle_filter.ObsNoiseCov_, 
                                      particle_filter.ObsNoiseMean_);
@@ -47,11 +47,11 @@ void pfMapMat::Update(
 	sum = 0.0;
 	for(int j = 0; j < particle_filter.samples_; j++){
             cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-            cv::Mat est_state = particle_filter.filtered_particles[j]._state.clone();
-            processmodel(est_state, last_particlefilter.filtered_particles[j]._state, 
+            cv::Mat est_state = particle_filter.filtered_particles[j].state_.clone();
+            processmodel(est_state, last_particlefilter.filtered_particles[j].state_, 
                          ctrl_input, rnd_num);
             p_xx_vec[j] = trans_likelihood(est_state,
-                                           particle_filter.filtered_particles[i]._state,
+                                           particle_filter.filtered_particles[i].state_,
                                            particle_filter.ProcessNoiseCov_,
                                            particle_filter.ProcessNoiseMean_);
             //sum = logsumexp(sum, p_xx_vec[j], (j == 0));
@@ -61,7 +61,7 @@ void pfMapMat::Update(
  	// }
         double tmp = 0;
 	for (int j = 0; j < particle_filter.samples_; j++){
-            tmp = (p_xx_vec[j] + last_particlefilter.filtered_particles[j]._weight );
+            tmp = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
             map[i] += exp(tmp);
 	}
 	map[i] = exp(p_yx_vec[i]) * map[i];
@@ -82,5 +82,5 @@ cv::Mat pfMapMat::GetEstimation()
             max_i = i;
         }
     }
-    return last_particlefilter.filtered_particles[max_i]._state;
+    return last_particlefilter.filtered_particles[max_i].state_;
 }

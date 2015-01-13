@@ -15,6 +15,8 @@
 
 #include <fstream>
 
+
+
 double bm_rand(double sigma, double m);
 double bm_rand_v2(double sigma, double m);
 double GetRandom(double min, double max);
@@ -27,75 +29,77 @@ typedef struct{
 
 class PStateMat
 {
-public : 
-	// x : 状態ベクトル
-	PStateMat() : _weight(0){}
-	PStateMat(cv::Mat x) : _weight(0)
+ public : 
+  // x : 状態ベクトル
+ PStateMat() : weight_(0){}
+ PStateMat(cv::Mat x) : weight_(0)
 	{
-		this->_state = x.clone();
+	  this->state_ = x.clone();
 	}
-	PStateMat(const PStateMat& x) : _weight(x._weight)
+ PStateMat(const PStateMat& x) : weight_(x.weight_)
 	{
-		this->_state = x._state.clone();
+	  this->state_ = x.state_.clone();
 	}
-	PStateMat(int dimX, double weight) : _weight(weight)
-	{
-		assert(dimX > 0);
-		_state = cv::Mat_<double>(dimX, 1);
-	}
-	~PStateMat(){}
-	cv::Mat _state;
-	double _weight;
+ PStateMat(int dimX, double weight) : weight_(weight)
+  {
+	assert(dimX > 0);
+	state_ = cv::Mat_<double>(dimX, 1);
+  }
+  ~PStateMat(){}
+  cv::Mat state_;
+  double weight_;
 };
 
 class ParticleFilterMat
 {
-public : 
-	//! A : 状態遷移行列, B : 制御入力, C : 観測行列, dimX : 状態ベクトルの次元数
-	ParticleFilterMat(cv::Mat A, cv::Mat B, cv::Mat C, int dimX);
-	ParticleFilterMat(const ParticleFilterMat& x);
-	~ParticleFilterMat();
+ public : 
+  //! A : 状態遷移行列, B : 制御入力, C : 観測行列, dimX : 状態ベクトルの次元数
+  ParticleFilterMat(cv::Mat A, cv::Mat B, cv::Mat C, int dimX);
+  ParticleFilterMat(const ParticleFilterMat& x);
+  ~ParticleFilterMat();
 	
-	//! samples : パーティクルの数, initCov : 初期パーティクルの分散, initMean : 初期パーティクルの平均
-	virtual void Init(int samples, cv::Mat initCov, cv::Mat initMean);
+  //! samples : パーティクルの数, initCov : 初期パーティクルの分散, initMean : 初期パーティクルの平均
+  virtual void Init(int samples, cv::Mat initCov, cv::Mat initMean);
 
-	//! Cov : 共分散行列, Mean : 平均
-	virtual void SetProcessNoise(cv::Mat Cov, cv::Mat Mean);
+  //! Cov : 共分散行列, Mean : 平均
+  virtual void SetProcessNoise(cv::Mat Cov, cv::Mat Mean);
 	
-	//! Cov : 共分散行列, Mean : 平均
-	virtual void SetObservationNoise(cv::Mat Cov, cv::Mat Mean);
+  //! Cov : 共分散行列, Mean : 平均
+  virtual void SetObservationNoise(cv::Mat Cov, cv::Mat Mean);
 	
-	//! delta_t : サンプリング時間, input : 制御入力
-	virtual void Sampling(double input);
-	virtual void Sampling(void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd),
-							const double &input);
+  //! delta_t : サンプリング時間, input : 制御入力
+  virtual void Sampling(double input);
+  virtual void Sampling(void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, 
+											const double &input, const cv::Mat &rnd),
+						const double &input);
 	
-	//! observed : 観測値
-	virtual void CalcLikehood(double input, cv::Mat observed);
-	virtual void CalcLikelihood(void(*obsmodel)(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd),
-								double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean),
-								const cv::Mat &observed);
+  //! observed : 観測値
+  virtual void CalcLikehood(double input, cv::Mat observed);
+  virtual void CalcLikelihood(void(*obsmodel)(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd),
+							  double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, 
+												  const cv::Mat &cov, const cv::Mat &mean),
+							  const cv::Mat &observed);
 
-	virtual void Resampling(cv::Mat observed, double ESSth=16.0);
+  virtual void Resampling(cv::Mat observed, double ESSth=16.0);
 
-	virtual cv::Mat GetMMSE();
-	virtual cv::Mat GetML();
-
-public : 
-	cv::Mat A_; 
-	cv::Mat B_;
-	cv::Mat C_;
-	cv::Mat ProcessNoiseCov_;	// process noise の共分散行列
-	cv::Mat ObsNoiseCov_;		// observation noise の共分散行列
-	cv::Mat ProcessNoiseMean_;	// process noise の平均
-	cv::Mat ObsNoiseMean_;		// observation noise の平均
-	bool isSetProcessNoise_;
-	bool isSetObsNoise_;
-	int dimX_;	// 状態ベクトルの次元数
-	int samples_; // パーティクルの数
-	bool isResampled_;
-	std::vector< PStateMat > predict_particles;
-	std::vector< PStateMat > filtered_particles;
+  virtual cv::Mat GetMMSE();
+  virtual cv::Mat GetML();
+  std::vector<int> GetClusteringEstimation();
+ public : 
+  cv::Mat A_; 
+  cv::Mat B_;
+  cv::Mat C_;
+  cv::Mat ProcessNoiseCov_;	// process noise の共分散行列
+  cv::Mat ObsNoiseCov_;		// observation noise の共分散行列
+  cv::Mat ProcessNoiseMean_;	// process noise の平均
+  cv::Mat ObsNoiseMean_;		// observation noise の平均
+  bool isSetProcessNoise_;
+  bool isSetObsNoise_;
+  int dimX_;	// 状態ベクトルの次元数
+  int samples_; // パーティクルの数
+  bool isResampled_;
+  std::vector< PStateMat > predict_particles;
+  std::vector< PStateMat > filtered_particles;
 };
 
 class PFilter

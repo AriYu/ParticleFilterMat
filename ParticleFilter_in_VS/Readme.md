@@ -20,6 +20,7 @@ $ plot "result_particle.dat" ind 29 u (filter($1,0.1)):(1) smooth frequency with
 ```
 事前分布と事後分布のヒストグラムを同時にプロット
 ```bash
+$ filter(x,y)=int(x/y)*y
 $ plot "result_particle.dat" ind 77 u (filter($1,1)):(1) smooth frequency with boxes t "proposal","result_after_particle.dat" ind 77 u (filter($1,1)):(1) smooth frequency with boxes t "posterior"i
 ```
 
