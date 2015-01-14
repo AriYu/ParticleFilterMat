@@ -150,7 +150,10 @@ ParticleFilterMat::ParticleFilterMat(cv::Mat A, cv::Mat B, cv::Mat C, int dimX)
 	C_ = C.clone();
 	//assert(C_.cols == dimX_);
 }
-
+ParticleFilterMat::ParticleFilterMat(int dimX)
+    : dimX_(dimX), isSetProcessNoise_(false), isSetObsNoise_(false), isResampled_(true)
+{
+}
 
 ParticleFilterMat::ParticleFilterMat(const ParticleFilterMat& x)
 {

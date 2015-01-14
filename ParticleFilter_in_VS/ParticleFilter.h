@@ -55,6 +55,7 @@ class ParticleFilterMat
  public : 
   //! A : 状態遷移行列, B : 制御入力, C : 観測行列, dimX : 状態ベクトルの次元数
   ParticleFilterMat(cv::Mat A, cv::Mat B, cv::Mat C, int dimX);
+  ParticleFilterMat(int dimX);
   ParticleFilterMat(const ParticleFilterMat& x);
   ~ParticleFilterMat();
 	

@@ -141,7 +141,7 @@ int main(void) {
         particles_after_file.open("result_after_particle.dat", ios::out);
         if (!particles_after_file.is_open()){ 
             std::cout << "open result_particle output failed" << endl; return -1; }
-		std::vector<ofstream> clustered_file((int)T); // k, x, weight
+		std::vector<ofstream> clustered_file((int)T); // x
 		for(int i = 0; i < (int)T; i++){
 		  string filename = "clustered_files/clustered_" + std::to_string(i) + ".dat";
 		  clustered_file[i].open(filename.c_str(), ios::out);
@@ -153,21 +153,16 @@ int main(void) {
         // ==============================
         // Set for Particle filter Mat
         // ==============================
-        cv::Mat A       = (cv::Mat_<double>(2, 2) << 1.0, 1.0, 0, 1.0);
-        // std::cout << "A = " << A << std::endl << std::endl;
-        cv::Mat B       = (cv::Mat_<double>(2, 2) << 0, 0, 0, 0);
-        // std::cout << "B = " << B << std::endl << std::endl;
-        cv::Mat C       = (cv::Mat_<double>(2, 1) << 1, 0);
-        // std::cout << "C = " << C << std::endl << std::endl;
-		//! A : 状態遷移行列, B : 制御入力, C : 観測行列, dimX : 状態ベクトルの次元数
-        ParticleFilterMat pfm(A, B, C, 1);
+		//! dimX : 状態ベクトルの次元数
+		const int state_dimension = 1;
+        ParticleFilterMat pfm( state_dimension );
         pfm.SetProcessNoise(ProcessCov, ProcessMean);
         pfm.SetObservationNoise(ObsCov, ObsMean);
         pfm.Init(NumOfParticle, initCov, initMean);
 
-        Mat    state             = Mat::zeros(1, 1, CV_64F); /* (x) */
-        Mat    last_state        = Mat::zeros(1, 1, CV_64F); /* (x) */
-        Mat    processNoise(1, 1, CV_64F);
+        Mat    state             = Mat::zeros(state_dimension, 1, CV_64F); /* (x) */
+        Mat    last_state        = Mat::zeros(state_dimension, 1, CV_64F); /* (x) */
+        Mat    processNoise      = Mat::zeros(state_dimension, 1, CV_64F);
         Mat    measurement       = Mat::zeros(1, 1, CV_64F);
         Mat    measurementNoise  = Mat::zeros(1, 1, CV_64F);
         double first_sensor      = 0.0;
