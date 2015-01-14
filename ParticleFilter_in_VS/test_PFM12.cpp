@@ -14,7 +14,6 @@
 
 #include "ParticleFilter.h"
 #include "EPViterbiMAP.h"
-#include "EPViterbiMAPAlpha.h"
 #include "pfMapMat.h"
 
 #include "RootMeanSquareError.h"
@@ -67,7 +66,7 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 //! mena : •½‹Ï
 double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean)
 {
-    double prod = 0.0, e;
+    double e = 0.0 ;
 
     e = z.at<double>(0, 0) - zhat.at<double>(0, 0) - mean.at<double>(0, 0);
     double tmp = -(e*e) / (2.0*cov.at<double>(0, 0));
@@ -177,7 +176,6 @@ int main(void) {
         // End Point Viterbi Estimation
         // ==============================
         EPViterbiMat epvgm(pfm);
-        EPViterbiMatAlpha epvgm_alpha(pfm);
 
         // ==============================
         // Particle based MAP Estimation
@@ -268,7 +266,7 @@ int main(void) {
 			// ------------------------------
 			std::vector<int> indices = pfm.GetClusteringEstimation();
 			#ifdef PARTICLE_IO
-			for(int cluster = 0; cluster < indices.size(); cluster++){
+			for(int cluster = 0; cluster < (int)indices.size(); cluster++){
 			  for(int number = 0; number < NumOfParticle; number++){
 				if(cluster == indices[number]){
 				  clustered_file[k] << pfm.predict_particles[number].state_.at<double>(0,0) 
@@ -285,10 +283,7 @@ int main(void) {
             epvgm_rmse.storeData(state.at<double>(0, 0), predict_x_epvgm);
             ml_rmse.storeData(state.at<double>(0, 0), predict_x_ml);
             pfmap_rmse.storeData(state.at<double>(0, 0), predict_x_pfmap);
-            cv::Mat actual_obs = measurement.clone();
-            cv::Mat rnd_num = cv::Mat::zeros(actual_obs.rows, actual_obs.cols, CV_64F);
-            observation(actual_obs, state, rnd_num);
-            obs_rmse.storeData(actual_obs.at<double>(0,0), measurement.at<double>(0,0));
+            obs_rmse.storeData(state.at<double>(0,0), measurement.at<double>(0,0));
 					
             // ==============================
             // Save Estimated State
