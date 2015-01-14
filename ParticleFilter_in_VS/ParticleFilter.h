@@ -85,7 +85,7 @@ class ParticleFilterMat
 
   virtual cv::Mat GetMMSE();
   virtual cv::Mat GetML();
-  std::vector<int> GetClusteringEstimation();
+  std::vector<int> GetClusteringEstimation(cv::Mat &est);
  public : 
   cv::Mat A_; 
   cv::Mat B_;
@@ -94,11 +94,11 @@ class ParticleFilterMat
   cv::Mat ObsNoiseCov_;		// observation noise の共分散行列
   cv::Mat ProcessNoiseMean_;	// process noise の平均
   cv::Mat ObsNoiseMean_;		// observation noise の平均
+  int dimX_;	// 状態ベクトルの次元数
   bool isSetProcessNoise_;
   bool isSetObsNoise_;
-  int dimX_;	// 状態ベクトルの次元数
-  int samples_; // パーティクルの数
   bool isResampled_;
+  int samples_; // パーティクルの数
   std::vector< PStateMat > predict_particles;
   std::vector< PStateMat > filtered_particles;
 };

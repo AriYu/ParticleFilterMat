@@ -510,18 +510,59 @@ cv::Mat ParticleFilterMat::GetMMSE()
     return mmse;
 }
 
- std::vector<int> ParticleFilterMat::GetClusteringEstimation()
+std::vector<int> ParticleFilterMat::GetClusteringEstimation(cv::Mat &est)
 {
-  int num_of_dimension = 1;
+  int num_of_dimension = dimX_;
   double sigma = 0.1;
-  const double clustering_threshold = ProcessNoiseCov_.at<double>(0,0);
+  const double clustering_threshold = sqrt(ProcessNoiseCov_.at<double>(0,0));
   std::vector<int> indices;
+
+  // とりあえず、リサンプリング後の分布をクラスタリングする
   MeanShiftClustering cluster(predict_particles, num_of_dimension, sigma);
   int num_of_cluster = cluster.Clustering(indices, clustering_threshold);
+
+
+  // クラスタ数が1つだけだったら普通にMMSEを計算する.
+  if(num_of_cluster == 1){
+	est = GetMMSE();
+	return indices;
+  }
+  
+  // クラスタごとに粒子を分ける
+  std::vector< std::vector<PStateMat> > clusters(num_of_cluster);
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	for(int i = 0; i < samples_; i++){
+	  if(cluster_ind == indices[i]){
+		clusters[cluster_ind].push_back(predict_particles[i]);
+	  }
+	}
+  }
+
+  // 一番粒子が多いクラスタを探す
+  size_t maxsize_of_cluster = 0;
+  int maxsize_cluster_ind = 0;
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	if(maxsize_of_cluster < clusters[cluster_ind].size()){
+	  maxsize_of_cluster = clusters[cluster_ind].size();
+	  maxsize_cluster_ind = cluster_ind;
+	}
+  }
+  
+  //一番粒子が多いクラスタのMMSEを計算する.
+  cv::Mat mmse = cv::Mat_<double>(dimX_, 1);
+  double tmp = 0;
+  for (int j = 0; j < dimX_; j++){
+	mmse.at<double>(j, 0) = 0.0;
+	for (int i = 0; i < clusters[maxsize_cluster_ind].size(); i++)
+	  {
+		tmp += (clusters[maxsize_cluster_ind][i].state_.at<double>(j, 0));
+				// * exp(clusters[maxsize_cluster_ind][i].weight_));
+	  }
+	mmse.at<double>(j, 0) = tmp/clusters[maxsize_cluster_ind].size();
+  }
+  est = mmse;
   cout << "num_of_cluster : " << num_of_cluster << endl;
-  //return num_of_cluster;
   return indices;
-  //return cv::Mat_<double>(dimX_, 1);
 }
 
 cv::Mat ParticleFilterMat::GetML()

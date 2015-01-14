@@ -20,6 +20,8 @@
 
 #include "mean_shift_clustering.h"
 
+#include "measure_time.h"
+
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
@@ -98,7 +100,7 @@ int main(void) {
     double ave_ml = 0;
     double ave_epvgm = 0;
     double ave_pfmap = 0;
-	
+	double ave_ms = 0;
     // ==============================
     // Set Process Noise
     // ==============================
@@ -185,11 +187,13 @@ int main(void) {
         RMSE epvgm_rmse;
         RMSE ml_rmse;
         RMSE pfmap_rmse;
+		RMSE ms_rmse;
         RMSE obs_rmse;
 
         cv::RNG rng((unsigned)time(NULL));            // random generater
         
         double input = 0.0;
+		MeasureTime timer;
 
         std::cout << "\rloop == " << loop  << endl;
         for (k = 0; k < T;k += 1.0){
@@ -237,15 +241,19 @@ int main(void) {
             // ==============================
             // EP-VGM Process
             // ==============================
+			timer.start();
             epvgm.Recursion(pfm, process, observation, 
                             Obs_likelihood, Trans_likelihood, input, measurement);
-            
+            timer.stop();
+			std::cout << "EP-VGM time :" << timer.getElapsedTime() << std::endl;
             // ==============================
             // Particle Based MAP Process
             // ==============================
+			timer.start();
             pfmap.Update(pfm, process, observation, 
                          Obs_likelihood, Trans_likelihood, input, measurement);
-
+			timer.stop();
+			std::cout << "pf-MAP time :" << timer.getElapsedTime() << std::endl;
 
             // ==============================
             // Get Estimation
@@ -259,7 +267,12 @@ int main(void) {
             Mat    predictionPFMAP = pfmap.GetEstimation();
             double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
 			// ------------------------------
-			std::vector<int> indices = pfm.GetClusteringEstimation();
+			Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
+			timer.start();
+			std::vector<int> indices = pfm.GetClusteringEstimation(predictionMeanshiftEst);
+			timer.stop();
+			std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
+			double predict_x_ms    = predictionMeanshiftEst.at<double>(0,0);
 			#ifdef PARTICLE_IO
 			for(int cluster = 0; cluster < (int)indices.size(); cluster++){
 			  for(int number = 0; number < NumOfParticle; number++){
@@ -278,6 +291,7 @@ int main(void) {
             epvgm_rmse.storeData(state.at<double>(0, 0), predict_x_epvgm);
             ml_rmse.storeData(state.at<double>(0, 0), predict_x_ml);
             pfmap_rmse.storeData(state.at<double>(0, 0), predict_x_pfmap);
+			ms_rmse.storeData(state.at<double>(0,0), predict_x_ms);
             obs_rmse.storeData(state.at<double>(0,0), measurement.at<double>(0,0));
 					
             // ==============================
@@ -288,8 +302,8 @@ int main(void) {
                    << predict_x_pf << " "                 // [3] predicted state by PF(MMSE)
                    << predict_x_epvgm << " "              // [4] predicted state by EPVGM
                    << predict_x_pfmap << " "              // [5] predicted state by PFMAP
-                   << predict_x_ml << endl;               // [6] predicted state by PF(ML)
-
+                   << predict_x_ml << " "                 // [6] predicted state by PF(ML)
+				   << predict_x_ms << endl;               // [7] predicted state by PF(MS)
             last_state = state;
 
             cout << endl;
@@ -300,17 +314,20 @@ int main(void) {
         ml_rmse.calculationRMSE();
         pfmap_rmse.calculationRMSE();
         obs_rmse.calculationRMSE();
+		ms_rmse.calculationRMSE();
 
         std::cout << "RMSE(MMSE)  : " << mmse_rmse.getRMSE() << endl;
+		std::cout << "RMSE(MS)    : " << ms_rmse.getRMSE() << endl;
         std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
         std::cout << "RMSE(PFMAP) : " << pfmap_rmse.getRMSE() << endl;
         std::cout << "RMSE(Obs)   : " << obs_rmse.getRMSE() << endl;
-
-        output.close();
         ave_mmse  += mmse_rmse.getRMSE();
         ave_epvgm += epvgm_rmse.getRMSE();
         ave_pfmap += pfmap_rmse.getRMSE();
         ave_ml    += ml_rmse.getRMSE();
+		ave_ms    += ms_rmse.getRMSE();
+
+        output.close();
     }
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
     std::cout << "nonlinear, multimodal model" << endl;
@@ -318,6 +335,7 @@ int main(void) {
     std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
     std::cout << "ObsCov      ="  << ObsCov << std::endl << std::endl;
     std::cout << "RMSE(MMSE)  : " << ave_mmse / (double)NumOfIterate << endl;
+	std::cout << "RMSE(MS)    : " << ave_ms / (double)NumOfIterate << endl;
     std::cout << "RMSE(ML)    : " << ave_ml / (double)NumOfIterate << endl;
     std::cout << "RMSE(EPVGM) : " << ave_epvgm / (double)NumOfIterate << endl;
     std::cout << "RMSE(PFMAP) : " << ave_pfmap / (double)NumOfIterate << endl;

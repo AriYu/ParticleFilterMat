@@ -68,7 +68,7 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 //! mena : •½‹Ï
 double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean)
 {
-  double prod = 0.0, e;
+  double  e = 0.0;
 
   //for (int i = 0; i < z.rows; ++i)
   //{
@@ -102,7 +102,6 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 //! mena : •½‹Ï
 double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &cov, const cv::Mat &mean)
 {
-    double prod = 0.0, e, sum=0.0;
     cv::Mat error = x - xhat;
     double error_norm = cv::norm(error);
 

@@ -17,6 +17,7 @@ class MeasureTime
   void start()
   {
 	startTime_ = std::chrono::system_clock::now();
+	elapsedTime_ = 0;
   }
   void stop()
   {

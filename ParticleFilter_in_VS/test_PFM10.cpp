@@ -65,9 +65,8 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 //! mena : •½‹Ï
 double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean)
 {
-    double prod = 0.0, e;
+    double e = 0.0;
 
-    double sum = 0;
     e = z.at<double>(0, 0) - zhat.at<double>(0, 0) - mean.at<double>(0, 0);
     double tmp = -(e*e) / (2.0*cov.at<double>(0, 0));
     tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));

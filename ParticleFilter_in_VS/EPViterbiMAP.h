@@ -26,8 +26,8 @@ public:
 	virtual cv::Mat GetEstimation();
 
 protected:
-	bool is_inited_;
 	ParticleFilterMat last_particlefilter;
+	bool is_inited_;
 	std::vector<double> delta;
 	std::vector<double> last_delta;
 	std::vector<double> g_yx_vec;

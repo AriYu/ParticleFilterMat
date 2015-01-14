@@ -118,7 +118,7 @@ void EPViterbiMat::Recursion(
     std::vector<double> maxlastdelta(particle_filter.samples_);
 #endif
 
-    double tmp = 0;
+	//    double tmp = 0;
 
     if (! is_inited_){
 	Initialization(particle_filter, obsmodel, obs_likelihood, trans_likelihood,  observed);
