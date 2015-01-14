@@ -514,13 +514,19 @@ std::vector<int> ParticleFilterMat::GetClusteringEstimation(cv::Mat &est)
 {
   int num_of_dimension = dimX_;
   double sigma = 0.1;
-  const double clustering_threshold = sqrt(ProcessNoiseCov_.at<double>(0,0));
+  const double clustering_threshold = 5.0;//sqrt(ProcessNoiseCov_.at<double>(0,0));
   std::vector<int> indices;
+
 
   // とりあえず、リサンプリング後の分布をクラスタリングする
   MeanShiftClustering cluster(predict_particles, num_of_dimension, sigma);
   int num_of_cluster = cluster.Clustering(indices, clustering_threshold);
 
+  // リサンプリングしてなかったら普通にMMSEを計算する.
+  if(isResampled_ == false){
+	est = GetMMSE();
+	return indices;
+  }
 
   // クラスタ数が1つだけだったら普通にMMSEを計算する.
   if(num_of_cluster == 1){
