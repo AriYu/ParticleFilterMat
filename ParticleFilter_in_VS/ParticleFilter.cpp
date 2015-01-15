@@ -565,10 +565,11 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 	mmse.at<double>(j, 0) = 0.0;
 	for (int i = 0; i < clusters[maxsize_cluster_ind].size(); i++)
 	  {
-		tmp += (clusters[maxsize_cluster_ind][i].state_.at<double>(j, 0));
-				// * exp(clusters[maxsize_cluster_ind][i].weight_));
+		tmp += (clusters[maxsize_cluster_ind][i].state_.at<double>(j, 0))
+		  * exp(clusters[maxsize_cluster_ind][i].weight_);
 	  }
-	mmse.at<double>(j, 0) = tmp/clusters[maxsize_cluster_ind].size();
+	//mmse.at<double>(j, 0) = tmp/clusters[maxsize_cluster_ind].size();
+	mmse.at<double>(j, 0) = tmp;
   }
   est = mmse;
   cout << "num_of_cluster : " << num_of_cluster << endl;
