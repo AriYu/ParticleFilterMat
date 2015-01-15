@@ -85,7 +85,7 @@ class ParticleFilterMat
 
   virtual cv::Mat GetMMSE();
   virtual cv::Mat GetML();
-  std::vector<int> GetClusteringEstimation(cv::Mat &est);
+  int GetClusteringEstimation(std::vector< std::vector<PStateMat> > &clusters, cv::Mat &est);
  public : 
   cv::Mat A_; 
   cv::Mat B_;

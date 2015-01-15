@@ -510,36 +510,40 @@ cv::Mat ParticleFilterMat::GetMMSE()
     return mmse;
 }
 
-std::vector<int> ParticleFilterMat::GetClusteringEstimation(cv::Mat &est)
+int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMat> > &clusters,
+											   cv::Mat &est)
 {
   int num_of_dimension = dimX_;
   double sigma = 0.1;
-  const double clustering_threshold = 5.0;//sqrt(ProcessNoiseCov_.at<double>(0,0));
+  const double clustering_threshold = sqrt(ProcessNoiseCov_.at<double>(0,0));
   std::vector<int> indices;
+  std::vector<PStateMat> target_particles;
 
 
-  // とりあえず、リサンプリング後の分布をクラスタリングする
-  MeanShiftClustering cluster(predict_particles, num_of_dimension, sigma);
-  int num_of_cluster = cluster.Clustering(indices, clustering_threshold);
-
-  // リサンプリングしてなかったら普通にMMSEを計算する.
-  if(isResampled_ == false){
-	est = GetMMSE();
-	return indices;
+  // 尤度が一定値以上のパーティクルのみをクラスタリングの対象とする.
+  for(int i = 0; i < samples_; i++){
+	if(exp(filtered_particles[i].weight_) > 0.0005){
+	  target_particles.push_back(filtered_particles[i]);
+	}
   }
+
+  // クラスタリングする
+  MeanShiftClustering cluster(target_particles, num_of_dimension, sigma);
+  int num_of_cluster = cluster.Clustering(indices, clustering_threshold);
 
   // クラスタ数が1つだけだったら普通にMMSEを計算する.
   if(num_of_cluster == 1){
 	est = GetMMSE();
-	return indices;
+	return num_of_cluster;
   }
   
   // クラスタごとに粒子を分ける
-  std::vector< std::vector<PStateMat> > clusters(num_of_cluster);
+  //std::vector< std::vector<PStateMat> > clusters(num_of_cluster);
+  clusters.resize(num_of_cluster);
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-	for(int i = 0; i < samples_; i++){
+	for(int i = 0; i < target_particles.size(); i++){
 	  if(cluster_ind == indices[i]){
-		clusters[cluster_ind].push_back(predict_particles[i]);
+		clusters[cluster_ind].push_back(target_particles[i]);
 	  }
 	}
   }
@@ -568,7 +572,7 @@ std::vector<int> ParticleFilterMat::GetClusteringEstimation(cv::Mat &est)
   }
   est = mmse;
   cout << "num_of_cluster : " << num_of_cluster << endl;
-  return indices;
+  return num_of_cluster;
 }
 
 cv::Mat ParticleFilterMat::GetML()
