@@ -30,9 +30,9 @@ PStateMat MeanShiftClustering::MeanShiftProcedure(PStateMat initX,
   PStateMat node(initX);
   PStateMat last_node(initX);
 
-#ifdef DEBUG
+  //#ifdef DEBUG
   unsigned long int loop = 0;
-#endif
+  //#endif
 
   while(true){
 	PStateMat sum_gx(dim_, 0.0);
@@ -58,11 +58,11 @@ PStateMat MeanShiftClustering::MeanShiftProcedure(PStateMat initX,
 	  #endif
 	  last_node = node;
 	}
-	#ifdef DEBUG
+	//#ifdef DEBUG
 	loop++;
-	std::cout << "loop : " << loop << std::endl;
-	if(loop > 10){ break; } 
-	#endif
+	//std::cout << "loop : " << loop << std::endl;
+	if(loop > 100){ break; } 
+	//#endif
   }
   #ifdef DEBUG
   std::cout << std::endl;

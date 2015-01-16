@@ -12,6 +12,21 @@ $ make
 $ cd ..
 $ ./testPFM*
 ```
+## test_PFM12
+非線形モデル
+
+## plotparticles.plt
+サンプリング後のパーティクルの位置と更新後の重みをプロット
+
+## plotlastparticles.plt
+サンプリング後のパーティクルの位置と更新前の重みをプロット
+
+## plothistogram.plt
+リサンプリング前とリサンプリング後のパーティクルのヒストグラムをプロット
+クラスタリング後のパーティクルもプロット
+
+## plotestimation.plt
+各推定手法による推定結果をプロット
 
 ## ヒストグラムをプロット
 ```bash

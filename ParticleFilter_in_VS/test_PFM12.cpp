@@ -24,14 +24,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 1
+#define NumOfIterate 20
 #define NumOfParticle 1000
 #define ESSth 5
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 50.0;          //! loop limit
+const double T = 200.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -139,6 +139,10 @@ int main(void) {
 	particles_file.open("result_particle.dat", ios::out);
 	if (!particles_file.is_open()){ 
 	  std::cout << "open result_particle output failed" << endl; return -1; }
+	ofstream last_particles_file; // k, x, weight
+	last_particles_file.open("result_last_particle.dat", ios::out);
+	if (!last_particles_file.is_open()){ 
+	  std::cout << "open result_particle output failed" << endl; return -1; }
 	ofstream particles_after_file; // k, x, weight
 	particles_after_file.open("result_after_particle.dat", ios::out);
 	if (!particles_after_file.is_open()){ 
@@ -225,7 +229,15 @@ int main(void) {
 	  // ==============================
 	  // Particle Filter Process
 	  // ==============================
-	  pfm.Sampling(process, input);            
+	  pfm.Sampling(process, input);     
+       
+#ifdef PARTICLE_IO
+	  for (int i = 0; i < pfm.samples_; i++){
+		last_particles_file << pfm.filtered_particles[i].state_.at<double>(0, 0) << " " 
+							<< exp(pfm.filtered_particles[i].weight_) << endl;
+	  }
+	  last_particles_file << endl; last_particles_file << endl;
+#endif // PARTICLE_IO
 
 	  pfm.CalcLikelihood(observation, Obs_likelihood, measurement);
 
@@ -241,19 +253,19 @@ int main(void) {
 	  // ==============================
 	  // EP-VGM Process
 	  // ==============================
-	  timer.start();
-	  epvgm.Recursion(pfm, process, observation, 
-					  Obs_likelihood, Trans_likelihood, input, measurement);
-	  timer.stop();
-	  std::cout << "EP-VGM time :" << timer.getElapsedTime() << std::endl;
+	  // timer.start();
+	  // epvgm.Recursion(pfm, process, observation, 
+	  // 				  Obs_likelihood, Trans_likelihood, input, measurement);
+	  // timer.stop();
+	  // std::cout << "EP-VGM time :" << timer.getElapsedTime() << std::endl;
 	  // ==============================
 	  // Particle Based MAP Process
 	  // ==============================
-	  timer.start();
-	  pfmap.Update(pfm, process, observation, 
-				   Obs_likelihood, Trans_likelihood, input, measurement);
-	  timer.stop();
-	  std::cout << "pf-MAP time :" << timer.getElapsedTime() << std::endl;
+	  // timer.start();
+	  // pfmap.Update(pfm, process, observation, 
+	  // 			   Obs_likelihood, Trans_likelihood, input, measurement);
+	  // timer.stop();
+	  // std::cout << "pf-MAP time :" << timer.getElapsedTime() << std::endl;
 
 	  // ==============================
 	  // Get Estimation
