@@ -24,14 +24,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 20
+#define NumOfIterate 10
 #define NumOfParticle 1000
 #define ESSth 5
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 200.0;          //! loop limit
+const double T = 50.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -104,7 +104,7 @@ int main(void) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 10.0);
+  cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 1.0);
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
@@ -112,7 +112,7 @@ int main(void) {
   // ==============================
   // Set Observation Noise
   // ==============================
-  cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 1.0);
+  cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 3.0);
   std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean = (cv::Mat_<double>(1, 1) << 0.0);
   std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;

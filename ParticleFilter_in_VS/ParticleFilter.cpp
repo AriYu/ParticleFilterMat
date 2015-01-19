@@ -522,7 +522,7 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 
   // 尤度が一定値以上のパーティクルのみをクラスタリングの対象とする.
   for(int i = 0; i < samples_; i++){
-	if(exp(filtered_particles[i].weight_) > 0.0001){
+	if(exp(filtered_particles[i].weight_) > 0.00001){
 	  target_particles.push_back(filtered_particles[i]);
 	}
   }
@@ -548,28 +548,43 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 	}
   }
 
-  // 各クラスタの確率の平均値を算出する
-  std::vector<double> cluster_prob(num_of_cluster, 0.0);
+  // 各クラスタの重みによる相対的な事後確率を求める
+  double sum_of_weight = 0;
+  std::vector<double> cluster_prob_weight(num_of_cluster, 0.0);
+  // 各クラスタの粒子数による相対的な事前確率を求める．
+  double sum_of_particles = 0;
+  std::vector<double> cluster_prob_num(num_of_cluster, 0.0);
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
 	for(int i = 0; i < (int)clusters[cluster_ind].size(); i++){
-	  cluster_prob[cluster_ind] += exp(clusters[cluster_ind][i].weight_);
+	  sum_of_weight += exp(clusters[cluster_ind][i].weight_);
+	  cluster_prob_weight[cluster_ind] += exp(clusters[cluster_ind][i].weight_);
 	}
 	//cluster_prob[cluster_ind] = cluster_prob[cluster_ind] / (double)clusters[cluster_ind].size();
-	std::cout << "cluster_prob[" << cluster_ind << "]:" 
-			  << cluster_prob[cluster_ind] << endl;
-	std::cout << "particle_num[" << cluster_ind << "]:" 
-			  << clusters[cluster_ind].size() << endl;
-	std::cout << "prob_average[" << cluster_ind << "]:" 
-			  << cluster_prob[cluster_ind]*(double)clusters[cluster_ind].size() << std::endl;
-	std::cout << std::endl;
+	cluster_prob_num[cluster_ind] = (double)clusters[cluster_ind].size();
+	sum_of_particles += (double)clusters[cluster_ind].size();
+
+  }
+
+  // 正規化
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	cluster_prob_weight[cluster_ind] = cluster_prob_weight[cluster_ind]/sum_of_weight;
+	cluster_prob_num[cluster_ind] = cluster_prob_num[cluster_ind]/sum_of_particles;
+	std::cout << "+--------------------------------------------------------+" << std::endl;
+	std::cout << "cluster_prob_weight[" << cluster_ind << "]:" 
+			  << cluster_prob_weight[cluster_ind] << endl;
+	std::cout << "cluster_prob_num[" << cluster_ind << "]:" 
+			  << cluster_prob_num[cluster_ind] << endl;
+	std::cout << "connective_prob[" << cluster_ind << "]:" 
+			  << cluster_prob_weight[cluster_ind]/cluster_prob_num[cluster_ind] << std::endl;
+	std::cout << "+--------------------------------------------------------+" << std::endl;
   }
 
   // 確率の平均値が一番高いやつを探す
-  double maxprob_of_cluster = cluster_prob[0]*(double)clusters[0].size();
+  double maxprob_of_cluster = cluster_prob_weight[0]/cluster_prob_num[0];
   int maxsize_cluster_ind = 0;
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-	if(maxprob_of_cluster <  cluster_prob[cluster_ind]*(double)clusters[cluster_ind].size()){
-	  maxprob_of_cluster =  cluster_prob[cluster_ind]*(double)clusters[cluster_ind].size();
+	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]/cluster_prob_num[cluster_ind]){
+	  maxprob_of_cluster = cluster_prob_weight[cluster_ind]/cluster_prob_num[cluster_ind];//*;
 	  maxsize_cluster_ind = cluster_ind;
 	}
   }
@@ -582,11 +597,11 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 	double tmp = 0;
 	for (int i = 0; i < clusters[maxsize_cluster_ind].size(); i++)
 	  {
-		tmp += (clusters[maxsize_cluster_ind][i].state_.at<double>(j, 0))
-		  * exp(clusters[maxsize_cluster_ind][i].weight_);
+		tmp += (clusters[maxsize_cluster_ind][i].state_.at<double>(j, 0));
+		  //* exp(clusters[maxsize_cluster_ind][i].weight_);
 	  }
-	//mmse.at<double>(j, 0) = tmp/clusters[maxsize_cluster_ind].size();
-	mmse.at<double>(j, 0) = tmp;
+	mmse.at<double>(j, 0) = tmp/clusters[maxsize_cluster_ind].size();
+	//mmse.at<double>(j, 0) = tmp;
   }
   est = mmse;
   cout << "num_of_cluster : " << num_of_cluster << endl;
