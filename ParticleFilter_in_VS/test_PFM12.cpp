@@ -24,7 +24,7 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 10
+#define NumOfIterate 1
 #define NumOfParticle 1000
 #define ESSth 5
 using namespace std;
@@ -104,7 +104,7 @@ int main(void) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 1.0);
+  cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 10.0);
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;

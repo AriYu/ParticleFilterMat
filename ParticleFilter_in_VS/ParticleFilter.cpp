@@ -514,7 +514,7 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 											   cv::Mat &est)
 {
   int num_of_dimension = dimX_;
-  double sigma = 0.1;
+  double sigma = sqrt(ProcessNoiseCov_.at<double>(0,0));
   const double clustering_threshold = sqrt(ProcessNoiseCov_.at<double>(0,0));
   std::vector<int> indices;
   std::vector<PStateMat> target_particles;
@@ -522,7 +522,7 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 
   // 尤度が一定値以上のパーティクルのみをクラスタリングの対象とする.
   for(int i = 0; i < samples_; i++){
-	if(exp(filtered_particles[i].weight_) > 0.00001){
+	if(exp(filtered_particles[i].weight_) > 0.0001){
 	  target_particles.push_back(filtered_particles[i]);
 	}
   }
@@ -567,8 +567,8 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 
   // 正規化
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-	cluster_prob_weight[cluster_ind] = cluster_prob_weight[cluster_ind]/sum_of_weight;
-	cluster_prob_num[cluster_ind] = cluster_prob_num[cluster_ind]/sum_of_particles;
+	// cluster_prob_weight[cluster_ind] = cluster_prob_weight[cluster_ind]/sum_of_weight;
+	// cluster_prob_num[cluster_ind] = cluster_prob_num[cluster_ind]/sum_of_particles;
 	std::cout << "+--------------------------------------------------------+" << std::endl;
 	std::cout << "cluster_prob_weight[" << cluster_ind << "]:" 
 			  << cluster_prob_weight[cluster_ind] << endl;
@@ -580,11 +580,13 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
   }
 
   // 確率の平均値が一番高いやつを探す
-  double maxprob_of_cluster = cluster_prob_weight[0]/cluster_prob_num[0];
+  double maxprob_of_cluster = cluster_prob_weight[0];// /cluster_prob_num[0];
   int maxsize_cluster_ind = 0;
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]/cluster_prob_num[cluster_ind]){
-	  maxprob_of_cluster = cluster_prob_weight[cluster_ind]/cluster_prob_num[cluster_ind];//*;
+	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]// /cluster_prob_num[cluster_ind]
+	   ){
+	  maxprob_of_cluster = cluster_prob_weight[cluster_ind]// /cluster_prob_num[cluster_ind]
+		;//*;
 	  maxsize_cluster_ind = cluster_ind;
 	}
   }
