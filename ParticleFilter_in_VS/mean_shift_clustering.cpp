@@ -61,7 +61,7 @@ PStateMat MeanShiftClustering::MeanShiftProcedure(PStateMat initX,
 	//#ifdef DEBUG
 	loop++;
 	//std::cout << "loop : " << loop << std::endl;
-	if(loop > 100){ break; } 
+	if(loop > 10000){ break; } 
 	//#endif
   }
   #ifdef DEBUG

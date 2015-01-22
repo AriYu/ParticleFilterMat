@@ -22,6 +22,7 @@ double bm_rand_v2(double sigma, double m);
 double GetRandom(double min, double max);
 double logsumexp(double x, double y, bool flg);
 
+
 typedef struct{
   double x;
   double weight;
@@ -194,5 +195,6 @@ class pfMAP
 
 };
   
+double calculationESS(std::vector<PStateMat> &states);
 
 #endif // PARTICLE_FILTER

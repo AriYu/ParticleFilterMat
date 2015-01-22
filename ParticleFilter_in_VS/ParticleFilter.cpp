@@ -514,17 +514,16 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 											   cv::Mat &est)
 {
   int num_of_dimension = dimX_;
-  double sigma = sqrt(ProcessNoiseCov_.at<double>(0,0));
-  const double clustering_threshold = sqrt(ProcessNoiseCov_.at<double>(0,0));
+  double sigma = sqrt(ObsNoiseCov_.at<double>(0,0));
+  const double clustering_threshold = ObsNoiseCov_.at<double>(0,0);
   std::vector<int> indices;
   std::vector<PStateMat> target_particles;
 
-
   // 尤度が一定値以上のパーティクルのみをクラスタリングの対象とする.
   for(int i = 0; i < samples_; i++){
-	if(exp(filtered_particles[i].weight_) > 0.0001){
+		if(exp(filtered_particles[i].weight_) > 0.00005){
 	  target_particles.push_back(filtered_particles[i]);
-	}
+	  }
   }
 
   // クラスタリングする
@@ -564,6 +563,14 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 	sum_of_particles += (double)clusters[cluster_ind].size();
 
   }
+  // 各クラスタのESSを計算してみる
+  std::vector<double> ESSes(num_of_cluster,0);
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	ESSes[cluster_ind] = calculationESS(clusters[cluster_ind]);
+	std::cout << "ESS[" << cluster_ind << "]: " 
+			  << ESSes[cluster_ind]/(double)clusters[cluster_ind].size() << std::endl;
+  }
+
 
   // 正規化
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
@@ -579,7 +586,7 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 	std::cout << "+--------------------------------------------------------+" << std::endl;
   }
 
-  // 確率の平均値が一番高いやつを探す
+  // 重みの和が一番高いクラスタを探す
   double maxprob_of_cluster = cluster_prob_weight[0];// /cluster_prob_num[0];
   int maxsize_cluster_ind = 0;
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
@@ -591,21 +598,19 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 	}
   }
   
-  //一番粒子が多いクラスタのMMSEを計算する.
+  // 確率の和が一番高いクラスタの中でもっとも重みが大きいものを推定値とする
   // mmseを計算すると中途半端な推定値になるのは,確率を正規化していないから,全部足しても1にならないから
-  cv::Mat mmse = cv::Mat_<double>(dimX_, 1);
-  for (int j = 0; j < dimX_; j++){
-	mmse.at<double>(j, 0) = 0.0;
-	double tmp = 0;
-	for (int i = 0; i < clusters[maxsize_cluster_ind].size(); i++)
-	  {
-		tmp += (clusters[maxsize_cluster_ind][i].state_.at<double>(j, 0));
-		  //* exp(clusters[maxsize_cluster_ind][i].weight_);
+  double max = clusters[maxsize_cluster_ind][0].weight_;
+  int num = 0;
+  for (int i = 1; i < clusters[maxsize_cluster_ind].size(); i++)
+	{
+	  if(max < clusters[maxsize_cluster_ind][i].weight_){
+		max = clusters[maxsize_cluster_ind][i].weight_;
+		num = i;
 	  }
-	mmse.at<double>(j, 0) = tmp/clusters[maxsize_cluster_ind].size();
-	//mmse.at<double>(j, 0) = tmp;
-  }
-  est = mmse;
+	}
+
+  est = clusters[maxsize_cluster_ind][num].state_;
   cout << "num_of_cluster : " << num_of_cluster << endl;
   return num_of_cluster;
 }
@@ -626,6 +631,18 @@ cv::Mat ParticleFilterMat::GetML()
 	}
 	return ml;
 }
+
+double calculationESS(std::vector<PStateMat> &states)
+{
+  double ESS = 0;
+  double tmp = 0;
+  for (int i = 0; i < states.size(); i++){
+	tmp += pow(exp(states[i].weight_), 2.0);
+  }
+  ESS = 1.0 / tmp;
+  return ESS;
+}
+
 ///////////////////////////////////////////////////
 // Normal distribution random genelator
 //---------------------------------------

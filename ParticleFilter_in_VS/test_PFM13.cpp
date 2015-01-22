@@ -41,7 +41,7 @@ const double T = 50.0;      //! loop limit
 //! rnd		: process noise
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
-  x.at<double>(0, 0) = xpre.at<double>(0, 0) + rnd.at<double>(0, 0);
+  x.at<double>(0, 0) = xpre.at<double>(0, 0) + sin(k) + rnd.at<double>(0, 0);
     // x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
 	//   + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
 	//   +  8.0 * cos(1.2*k)
@@ -58,7 +58,7 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
     // z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
     //     + rnd.at<double>(0, 0);
   z.at<double>(0, 0) = (x.at<double>(0, 0)) + rnd.at<double>(0, 0);
-  z.at<double>(1, 0) = (x.at<double>(1, 0)) + rnd.at<double>(1, 0);
+  z.at<double>(1, 0) = (x.at<double>(0, 0)) + rnd.at<double>(1, 0);
 }
 
 //-----------------------------------------------------
@@ -69,15 +69,18 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 //! mena : •½‹Ï
 double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean)
 {
-    double e = 0.0 ;
+  double e(0.0) ;
+  double first_sensor(0.0);
+  double second_sensor(0.0);
+  double sum(0.0);
 
-    e = z.at<double>(0, 0) - zhat.at<double>(0, 0) - mean.at<double>(0, 0);
-    double first_sensor = -(e*e) / (2.0*cov.at<double>(0, 0));
-    e = z.at<double>(1, 0) - zhat.at<double>(1, 0) - mean.at<double>(1, 0);
-	double second_sensor = -(e*e) / (2.0*cov.at<double>(1, 0));
-	double tmp = first_sensor + second_sensor;
-    //tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
-    return tmp;
+  e = z.at<double>(0, 0) - zhat.at<double>(0, 0) - mean.at<double>(0, 0);
+  first_sensor = -(e*e) / (2.0*cov.at<double>(0, 0));
+  e = z.at<double>(1, 0) - zhat.at<double>(1, 0) - mean.at<double>(1, 0);
+  second_sensor = -(e*e) / (0.5*cov.at<double>(0, 0));
+  sum = logsumexp(first_sensor, second_sensor, false);
+  //tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
+  return sum;
 }
 
 //-----------------------------------------------------
@@ -116,7 +119,7 @@ int main(void) {
   // ==============================
   // Set Observation Noise
   // ==============================
-  cv::Mat ObsCov        = (cv::Mat_<double>(2, 1) << 3.0, 3.0);
+  cv::Mat ObsCov        = (cv::Mat_<double>(2, 1) << 100.0, 0.1);
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(2, 1) << 0.0, 0.0);
   std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
@@ -329,7 +332,9 @@ int main(void) {
 			 << predict_x_epvgm << " "              // [4] predicted state by EPVGM
 			 << predict_x_pfmap << " "              // [5] predicted state by PFMAP
 			 << predict_x_ml << " "                 // [6] predicted state by PF(ML)
-			 << predict_x_ms << endl;               // [7] predicted state by PF(MS)
+			 << predict_x_ms << " "                 // [7] predicted state by PF(MS)
+			 << measurement.at<double>(1, 0)        // [8] second sensor
+			 << endl;
 	  last_state = state;
 
 	  cout << endl;
@@ -348,6 +353,7 @@ int main(void) {
 	std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
 	std::cout << "RMSE(PFMAP) : " << pfmap_rmse.getRMSE() << endl;
 	std::cout << "RMSE(Obs)   : " << obs_rmse.getRMSE() << endl;
+
 	ave_mmse  += mmse_rmse.getRMSE();
 	ave_epvgm += epvgm_rmse.getRMSE();
 	ave_pfmap += pfmap_rmse.getRMSE();

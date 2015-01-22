@@ -24,7 +24,7 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 1
+#define NumOfIterate 10
 #define NumOfParticle 1000
 #define ESSth 5
 using namespace std;
@@ -273,11 +273,11 @@ int main(void) {
 	  Mat    predictionPF    = pfm.GetMMSE();
 	  double predict_x_pf    = predictionPF.at<double>(0, 0);
 	  Mat    predictionEPVGM = epvgm.GetEstimation();
-	  double predict_x_epvgm = predictionEPVGM.at<double>(0, 0);
+	  double predict_x_epvgm = 0;//predictionEPVGM.at<double>(0, 0);
 	  Mat    predictionML    = pfm.GetML();
 	  double predict_x_ml    = predictionML.at<double>(0, 0);
 	  Mat    predictionPFMAP = pfmap.GetEstimation();
-	  double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
+	  double predict_x_pfmap = 0;//predictionPFMAP.at<double>(0, 0);
 	  // ------------------------------
 	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
 	  timer.start();
