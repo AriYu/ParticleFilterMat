@@ -52,3 +52,14 @@ add_executable(
   RootMeanSquareError.cpp
   )
 target_link_libraries( test_PFM12 ${OpenCV_LIBS} )
+
+add_executable( 
+  test_PFM13 test_PFM13.cpp
+  mean_shift_clustering.cpp 
+  ParticleFilter.cpp
+  EPViterbiMAP.cpp
+  EPViterbiMAPAlpha.cpp
+  pfMapMat.cpp
+  RootMeanSquareError.cpp
+  )
+target_link_libraries( test_PFM13 ${OpenCV_LIBS} )
