@@ -33,4 +33,8 @@ plot "../../result1.dat" u 1 w lines t "true(x1)","../../result1.dat" u 7 w line
 set output "all.pdf"
 plot "../../result1.dat" u 1 w lines t "true(x1)","../../result1.dat" u 3 w lines t "PF[MMSE](x1)","../../result1.dat" u 4 w lines t "EPVGM(x1)","../../result1.dat" u 5 w lines t "PFMAP(x1)","../../result1.dat" u 7 w lines t "PFMS(x1)"
 
+# 推定値と真値の差のグラフをプロット
+set output "diff.pdf"
+plot "../../result2.dat" u 2 w lines t "PFMS(x1)","../../result2.dat" u 1 w lines t "PF[MMSE](x1)"
+
 reset

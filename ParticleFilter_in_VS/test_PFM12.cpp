@@ -24,14 +24,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 10
-#define NumOfParticle 1000
+#define NumOfIterate 1
+#define NumOfParticle 10000
 #define ESSth 5
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 50.0;          //! loop limit
+const double T = 200.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -133,6 +133,9 @@ int main(void) {
 	ofstream output;        // x, y
 	output.open("result1.dat", ios::out);
 	if (!output.is_open()){ std::cout << "open result output failed" << endl; return -1; }
+	ofstream output_diff;        // x, y
+	output_diff.open("result2.dat", ios::out);
+	if (!output_diff.is_open()){ std::cout << "open result output failed" << endl; return -1; }
 
 #ifdef PARTICLE_IO
 	ofstream particles_file; // k, x, weight
@@ -212,15 +215,12 @@ int main(void) {
 	  // ==============================
 	  // Generate Actual Value
 	  // =============================
-	  //randn(processNoise, Scalar(0), Scalar::all(sqrt(ProcessCov.at<double>(0, 0))));
 	  processNoise.at<double>(0,0) = processNoiseGen(engine);
 	  process(state, last_state, input, processNoise);
 
 	  // ==============================
 	  // Generate Observation Value
 	  // ==============================
-	  // first_sensor = rng.gaussian(sqrt(ObsCov.at<double>(0, 0))) 
-	  // 	+ ObsMean.at<double>(0, 0);
 	  first_sensor = obsNoiseGen(engine)
 		+ ObsMean.at<double>(0, 0);
 	  measurementNoise.at<double>(0, 0) = first_sensor;
@@ -325,6 +325,8 @@ int main(void) {
 			 << predict_x_pfmap << " "              // [5] predicted state by PFMAP
 			 << predict_x_ml << " "                 // [6] predicted state by PF(ML)
 			 << predict_x_ms << endl;               // [7] predicted state by PF(MS)
+	  output_diff << state.at<double>(0, 0) - predict_x_pf << " "
+				  << state.at<double>(0, 0) - predict_x_ms << endl;
 	  last_state = state;
 
 	  cout << endl;
