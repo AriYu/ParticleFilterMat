@@ -24,14 +24,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 1
-#define NumOfParticle 10000
+#define NumOfIterate 2
+#define NumOfParticle 1000
 #define ESSth 5
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 200.0;          //! loop limit
+const double T = 100.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -253,19 +253,19 @@ int main(void) {
 	  // ==============================
 	  // EP-VGM Process
 	  // ==============================
-	  // timer.start();
-	  // epvgm.Recursion(pfm, process, observation, 
-	  // 				  Obs_likelihood, Trans_likelihood, input, measurement);
-	  // timer.stop();
-	  // std::cout << "EP-VGM time :" << timer.getElapsedTime() << std::endl;
+	  timer.start();
+	  epvgm.Recursion(pfm, process, observation, 
+	  				  Obs_likelihood, Trans_likelihood, input, measurement);
+	  timer.stop();
+	  std::cout << "EP-VGM time :" << timer.getElapsedTime() << std::endl;
 	  // ==============================
 	  // Particle Based MAP Process
 	  // ==============================
-	  // timer.start();
-	  // pfmap.Update(pfm, process, observation, 
-	  // 			   Obs_likelihood, Trans_likelihood, input, measurement);
-	  // timer.stop();
-	  // std::cout << "pf-MAP time :" << timer.getElapsedTime() << std::endl;
+	  timer.start();
+	  pfmap.Update(pfm, process, observation, 
+	  			   Obs_likelihood, Trans_likelihood, input, measurement);
+	  timer.stop();
+	  std::cout << "pf-MAP time :" << timer.getElapsedTime() << std::endl;
 
 	  // ==============================
 	  // Get Estimation
@@ -273,11 +273,11 @@ int main(void) {
 	  Mat    predictionPF    = pfm.GetMMSE();
 	  double predict_x_pf    = predictionPF.at<double>(0, 0);
 	  Mat    predictionEPVGM = epvgm.GetEstimation();
-	  double predict_x_epvgm = 0;//predictionEPVGM.at<double>(0, 0);
+	  double predict_x_epvgm = predictionEPVGM.at<double>(0, 0);
 	  Mat    predictionML    = pfm.GetML();
 	  double predict_x_ml    = predictionML.at<double>(0, 0);
 	  Mat    predictionPFMAP = pfmap.GetEstimation();
-	  double predict_x_pfmap = 0;//predictionPFMAP.at<double>(0, 0);
+	  double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
 	  // ------------------------------
 	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
 	  timer.start();

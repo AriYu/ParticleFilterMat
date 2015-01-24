@@ -19,7 +19,7 @@ class MeanShiftClustering
   PStateMat MeanShiftProcedure(PStateMat initX,
 							   double threshold = 3e-5);
   double EuclideanDistance(PStateMat p1,
-						   PStateMat p2);
+						   PStateMat p2, double h);
   std::vector< PStateMat > points_;
   int dim_;
   double sigma_;

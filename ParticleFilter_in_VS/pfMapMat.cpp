@@ -19,54 +19,55 @@ void pfMapMat::Initialization(
 
 
 void pfMapMat::Update(
-    ParticleFilterMat &particle_filter,
-    void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd),
-    void(*obsmodel)(cv::Mat &z, const  cv::Mat &x, const cv::Mat &rnd),
-    double(*obs_likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean),
-    double(*trans_likelihood)(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &cov, const cv::Mat &mean),
-    const double &ctrl_input,
-    const cv::Mat &observed)
+					  ParticleFilterMat &particle_filter,
+					  void(*processmodel)(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd),
+					  void(*obsmodel)(cv::Mat &z, const  cv::Mat &x, const cv::Mat &rnd),
+					  double(*obs_likelihood)(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean),
+					  double(*trans_likelihood)(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &cov, const cv::Mat &mean),
+					  const double &ctrl_input,
+					  const cv::Mat &observed)
 {
-    double sum = 0.0;
-    for(int i = 0; i < particle_filter.samples_; i++){
+  double sum = 0.0;
+  for(int i = 0; i < particle_filter.samples_; i++){
 	cv::Mat obshat = observed.clone();
 	cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
 
 	obsmodel(obshat, particle_filter.filtered_particles[i].state_, rnd_num);
 	p_yx_vec[i] = obs_likelihood(observed, obshat, 
-                                     particle_filter.ObsNoiseCov_, 
-                                     particle_filter.ObsNoiseMean_);
-	//sum = logsumexp(sum, p_yx_vec[i], (i==0));
-    }
-    // for(int i = 0; i < particle_filter.samples_; i++){
-    //     p_yx_vec[i] = p_yx_vec[i] - sum;
-    // }
+								 particle_filter.ObsNoiseCov_, 
+								 particle_filter.ObsNoiseMean_);
+	sum = logsumexp(sum, p_yx_vec[i], (i==0));
+  }
+  for(int i = 0; i < particle_filter.samples_; i++){
+	p_yx_vec[i] = p_yx_vec[i] - sum;
+  }
 
-    for (int i = 0; i < particle_filter.samples_; i++){
+  for (int i = 0; i < particle_filter.samples_; i++){
 	map[i] = 0.0;
 	sum = 0.0;
 	for(int j = 0; j < particle_filter.samples_; j++){
-            cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-            cv::Mat est_state = particle_filter.filtered_particles[j].state_.clone();
-            processmodel(est_state, last_particlefilter.filtered_particles[j].state_, 
-                         ctrl_input, rnd_num);
-            p_xx_vec[j] = trans_likelihood(est_state,
-                                           particle_filter.filtered_particles[i].state_,
-                                           particle_filter.ProcessNoiseCov_,
-                                           particle_filter.ProcessNoiseMean_);
-            //sum = logsumexp(sum, p_xx_vec[j], (j == 0));
+	  cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
+	  cv::Mat est_state = particle_filter.filtered_particles[j].state_.clone();
+	  processmodel(est_state, last_particlefilter.filtered_particles[j].state_, 
+				   ctrl_input, rnd_num);
+	  p_xx_vec[j] = trans_likelihood(est_state,
+									 particle_filter.filtered_particles[i].state_,
+									 particle_filter.ProcessNoiseCov_,
+									 particle_filter.ProcessNoiseMean_);
+	  //sum = logsumexp(sum, p_xx_vec[j], (j == 0));
 	}
 	// for(int j = 0; j < particle_filter.samples_; j++){
-        //     p_xx_vec[j] = p_xx_vec[j] - sum;
+	//   p_xx_vec[j] = p_xx_vec[j] - sum;
  	// }
-        double tmp = 0;
+	double log_weight = 0;
 	for (int j = 0; j < particle_filter.samples_; j++){
-            tmp = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
-            map[i] += exp(tmp);
+	  //log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
+	  log_weight = logsumexp(p_xx_vec[j],last_particlefilter.filtered_particles[j].weight_ , false);
+	  map[i] += exp(log_weight);
 	}
 	map[i] = exp(p_yx_vec[i]) * map[i];
-    }
-    last_particlefilter = particle_filter;
+  }
+  last_particlefilter = particle_filter;
 }
 
 cv::Mat pfMapMat::GetEstimation()

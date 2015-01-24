@@ -14,16 +14,19 @@ MeanShiftClustering::~MeanShiftClustering()
 }
 
 double MeanShiftClustering::EuclideanDistance(PStateMat p1,
-											  PStateMat p2)
+											  PStateMat p2,
+											  double h)
 {
   double distance = 0;
   for(int i = 0; i < dim_; i++){
-	distance += pow(p1.state_.at<double>(i,0) - p2.state_.at<double>(i,0), 2.0);
+	distance += pow((p1.state_.at<double>(i,0) - p2.state_.at<double>(i,0))/h, 2.0);
   }
   return sqrt(distance);
   //  return cv::norm(p1.state_, p2.state_);
 }
 
+//--------------------------------------------
+// using Gaussian Kernel
 PStateMat MeanShiftClustering::MeanShiftProcedure(PStateMat initX,
 												  double threshold)
 {
@@ -39,16 +42,15 @@ PStateMat MeanShiftClustering::MeanShiftProcedure(PStateMat initX,
 	sum_gx.state_ = cv::Mat::zeros(sum_gx.state_.rows, sum_gx.state_.cols, CV_64F);
 	double sum_g = 0;
 	for(int i = 0; i < num_points_; i++){
-	  double dist = EuclideanDistance(node, points_[i]);
-	  dist = sigma_ * dist * dist;
-	  double g_i = dist * exp(-dist);
+	  double dist = EuclideanDistance(node, points_[i], sigma_);
+	  double g_i = -dist * exp(-pow(dist,2.0)/2.0);
 	  sum_g += g_i;
 	  sum_gx.state_.at<double>(0,0) = sum_gx.state_.at<double>(0,0) 
 		+ g_i * points_[i].state_.at<double>(0,0);
 	}
 	node.state_.at<double>(0,0) = sum_gx.state_.at<double>(0,0) / sum_g;
 
-	if(EuclideanDistance(node, last_node) < threshold){
+	if(EuclideanDistance(node, last_node, 1.0) < threshold){
 	  break;
 	}else{
 	  #ifdef DEBUG
@@ -80,7 +82,7 @@ int MeanShiftClustering::Clustering(std::vector<int> &indices, double threshold)
 	PStateMat node = MeanShiftProcedure(points_[i], 3e-4);
 	bool is_new_cluster(true);
 	for(int j = 0; j < (int)clusters.size(); j++){
-	  if(EuclideanDistance(clusters[j], node) < threshold){
+	  if(EuclideanDistance(clusters[j], node, 1.0) < threshold){
 		indices[i] = j;
 		is_new_cluster = false;
 		break;

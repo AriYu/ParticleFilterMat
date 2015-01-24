@@ -514,16 +514,16 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 											   cv::Mat &est)
 {
   int num_of_dimension = dimX_;
-  const double sigma =(ProcessNoiseCov_.at<double>(0,0));
+  const double sigma = sqrt(ProcessNoiseCov_.at<double>(0,0));
   const double clustering_threshold = (ProcessNoiseCov_.at<double>(0,0));
   std::vector<int> indices;
   std::vector<PStateMat> target_particles;
 
   // 尤度が一定値以上のパーティクルのみをクラスタリングの対象とする.
   for(int i = 0; i < samples_; i++){
-	if(exp(filtered_particles[i].weight_) > 0.00005){
+	//	if(exp(filtered_particles[i].weight_) > 0.00005){
 	  target_particles.push_back(filtered_particles[i]);
-	}
+	  //	}
   }
 
   // クラスタリングする
@@ -531,6 +531,7 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
   int num_of_cluster = cluster.Clustering(indices, clustering_threshold);
 
   // クラスタ数が1つだけもしくはクラスタリングに失敗したら普通にMMSEを計算する.
+  cout << "num_of_cluster : " << num_of_cluster << endl;
   if(num_of_cluster == 1 || num_of_cluster == 0){
 	est = GetMMSE();
 	return num_of_cluster;
@@ -539,7 +540,7 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
   // クラスタごとに粒子を分ける
   clusters.resize(num_of_cluster);
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-	for(int i = 0; i < target_particles.size(); i++){
+	for(int i = 0; i < (int)target_particles.size(); i++){
 	  if(cluster_ind == indices[i]){
 		clusters[cluster_ind].push_back(target_particles[i]);
 	  }
@@ -548,16 +549,22 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 
   // 各クラスタの重みの和とパーティクルの数を求める
   double sum_of_weight = 0;
+  double sum_of_particle = 0;
   std::vector<double> cluster_prob_weight(num_of_cluster, 0.0);
   std::vector<double> cluster_prob_num(num_of_cluster, 0.0);
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
 	for(int i = 0; i < (int)clusters[cluster_ind].size(); i++){
-	  sum_of_weight += exp(clusters[cluster_ind][i].weight_);
 	  cluster_prob_weight[cluster_ind] += exp(clusters[cluster_ind][i].weight_);
 	}
+	sum_of_weight += cluster_prob_weight[cluster_ind];
 	cluster_prob_num[cluster_ind] = (double)clusters[cluster_ind].size();
+	sum_of_particle += cluster_prob_num[cluster_ind];
   }
-
+  // 各クラスタのパーティクルの数と重みを正規化する．
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	cluster_prob_weight[cluster_ind] = cluster_prob_weight[cluster_ind]/sum_of_weight;
+	cluster_prob_num[cluster_ind] = cluster_prob_num[cluster_ind]/sum_of_particle;
+  }
 
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
 	std::cout << "+--------------------------------------------------------+" << std::endl;
@@ -566,7 +573,7 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
 	std::cout << "cluster_prob_num[" << cluster_ind << "]:" 
 			  << cluster_prob_num[cluster_ind] << endl;
 	std::cout << "connective_prob[" << cluster_ind << "]:" 
-			  << cluster_prob_weight[cluster_ind]/cluster_prob_num[cluster_ind] << std::endl;
+			  << cluster_prob_weight[cluster_ind]*cluster_prob_num[cluster_ind] << std::endl;
 	std::cout << "+--------------------------------------------------------+" << std::endl;
   }
 
@@ -574,37 +581,33 @@ int ParticleFilterMat::GetClusteringEstimation(std::vector< std::vector<PStateMa
   double maxprob_of_cluster = cluster_prob_weight[0];
   int maxprob_cluster_ind = 0;
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]){
-	  maxprob_of_cluster = cluster_prob_weight[cluster_ind];
-	  maxprob_cluster_ind = cluster_ind;
-	}
+  	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]){
+  	  maxprob_of_cluster = cluster_prob_weight[cluster_ind];
+  	  maxprob_cluster_ind = cluster_ind;
+  	}
   }
-
-  // 重みの和が一番高いクラスタの重みを正規化する．
-  // for(int i = 0; i < clusters[maxprob_of_cluster].size(); i++){
-  // 	cout << "Normalize[" << i << "]:" << clusters[maxprob_cluster_ind][i].weight_ << endl;
+  // パーティクルの数が多いクラスタを探す
+  // double maxnum_of_cluster = cluster_prob_num[0]*cluster_prob_weight[0];
+  // int maxnum_cluster_ind = 0;
+  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+  // 	if(maxnum_of_cluster < cluster_prob_num[cluster_ind]*cluster_prob_weight[cluster_ind]){
+  // 	  maxnum_of_cluster = cluster_prob_num[cluster_ind]*cluster_prob_weight[cluster_ind];
+  // 	  maxnum_cluster_ind = cluster_ind;
+  // 	}
   // }
-
-  // 確率の和が一番高いクラスタの中でもっとも重みが大きいものを推定値とする
-  // mmseを計算すると中途半端な推定値になるのは,確率を正規化していないから,
-  // 全部足しても1にならないから
-  // double max = clusters[maxprob_cluster_ind][0].weight_;
-  // int num = 0;
+  // int maxprob_cluster_ind = maxnum_cluster_ind;
+  // 重みの和が一番高いクラスタの重みを正規化する．
+  // MMSEを計算する．
   cv::Mat mmse = cv::Mat::zeros(dimX_, 1, CV_64F);
-  for (int i = 0; i < clusters[maxprob_cluster_ind].size(); i++)
+  for (int i = 0; i < (int)clusters[maxprob_cluster_ind].size(); i++)
 	{
 	  clusters[maxprob_cluster_ind][i].weight_ 
 		= exp(clusters[maxprob_cluster_ind][i].weight_) / cluster_prob_weight[maxprob_cluster_ind];
 	  mmse.at<double>(0,0) += clusters[maxprob_cluster_ind][i].state_.at<double>(0,0)*clusters[maxprob_cluster_ind][i].weight_;
-	  // if(max < clusters[maxprob_cluster_ind][i].weight_){
-	  // 	max = clusters[maxprob_cluster_ind][i].weight_;
-	  // 	num = i;
-	  // }
-	  // cout << "mmse : "<< mmse.at<double>(0, 0) << endl;
 	}
   est = mmse;
   // est = clusters[maxprob_cluster_ind][num].state_;
-  cout << "num_of_cluster : " << num_of_cluster << endl;
+
   return num_of_cluster;
 }
 
@@ -679,6 +682,9 @@ double GetRandom(double min, double max)
 	return min + (rand()*(max - min) / (RAND_MAX));
 }
 
+// ---------------------------------------------
+// This is log sum exp problem.
+// (http://tsujimotter.info/2012/07/27/logsumexp/)
 double logsumexp(double x, double y, bool flg)
 {
 	double vmin = 0;
