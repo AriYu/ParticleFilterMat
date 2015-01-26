@@ -45,9 +45,6 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 	  + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
 	  +  8.0 * cos(1.2*k)
 	  + rnd.at<double>(0, 0);
-  // x.at<double>(0, 0) =  xpre.at<double>(0,0)
-  // 	  + cos(xpre.at<double>(0,0)/10.0)
-  // 	  + rnd.at<double>(0, 0);
 }
 
 
@@ -59,8 +56,6 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
     z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
         + rnd.at<double>(0, 0);
-    // z.at<double>(0, 0) = (x.at<double>(0, 0)) 
-    //       + rnd.at<double>(0, 0);
 }
 
 //-----------------------------------------------------
