@@ -125,18 +125,19 @@ void EPViterbiMat::Recursion(
     }
     else
     {
+	  cv::Mat obshat = observed.clone(); // メモリの確保
+	  cv::Mat obs_rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F); // メモリの確保
+
         // ================================================
         // calc p(y_k | x_k)
         double sum = 0.0;
         for(int i = 0; i < particle_filter.samples_; i++){
-            cv::Mat obshat = observed.clone();
-            cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-            obsmodel(obshat, particle_filter.filtered_particles[i].state_, rnd_num);
+            obsmodel(obshat, particle_filter.filtered_particles[i].state_, obs_rnd_num);
             g_yx_vec[i] = obs_likelihood(observed, 
                                          obshat, 
                                          particle_filter.ObsNoiseCov_, 
                                          particle_filter.ObsNoiseMean_);
-            sum = logsumexp(sum, g_yx_vec[i], (i==0));
+            //sum = logsumexp(sum, g_yx_vec[i], (i==0));
         }
         // ===============================================
         // p(y_k | x_k)の正規化
@@ -144,61 +145,39 @@ void EPViterbiMat::Recursion(
         //     g_yx_vec[i] = g_yx_vec[i] - sum;
         // }
 
+		cv::Mat est_rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
+		cv::Mat est_state = particle_filter.filtered_particles[0].state_.clone();
+		std::vector<double> lastdelta_fxx(particle_filter.samples_);
         for(int i = 0; i < particle_filter.samples_; i++){
             // ================================================
             // calc p(x_k(i) | x_k-1(j))
             sum = 0.0;
             for (int j = 0; j < particle_filter.samples_; j++){
-                cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-                cv::Mat est_state = particle_filter.filtered_particles[i].state_.clone();
                 processmodel(est_state, 
                              last_particlefilter.filtered_particles[j].state_, 
-                             ctrl_input, rnd_num);
+                             ctrl_input, est_rnd_num);
                 f_xx_vec[j] = trans_likelihood(est_state,
                                                particle_filter.filtered_particles[i].state_,
                                                particle_filter.ProcessNoiseCov_,
                                                particle_filter.ProcessNoiseMean_);
-                sum = logsumexp(sum, f_xx_vec[j], (j==0));
+                //sum = logsumexp(sum, f_xx_vec[j], (j==0));
             }
+
             // ===============================================
             //p(x_k(i) | x_k-1(j))の正規化
-            for(int j = 0; j < particle_filter.samples_; j++){
-                f_xx_vec[j] = f_xx_vec[j] - sum;	  
-            }
-        
+            // for(int j = 0; j < particle_filter.samples_; j++){
+			//     f_xx_vec[j] = f_xx_vec[j] - sum;					
+			// }
+
             // ===============================================
             // Search max(delta_k-1 + log(p(x_k(i) | x_k-1(j))))
-            std::vector<double> lastdelta_fxx(particle_filter.samples_);
             for(int j = 0; j < particle_filter.samples_; j++){
 			  lastdelta_fxx[j] = last_delta[j] + f_xx_vec[j];
-			  //lastdelta_fxx[j] = logsumexp(last_delta[j], f_xx_vec[j], false);
-            }
+			}
             max[i] = *max_element( lastdelta_fxx.begin(), lastdelta_fxx.end() );
-            // ===============================================
-            // Search max(delta_k-1 + log(p(x_k(i) | x_k-1(j))))
-            // for(int j = 0; j < particle_filter.samples_; j++){
-            //   if (j == 0){
-            // 	max[i] = last_delta[j] + f_xx_vec[j];
-            // 	#ifdef DEBUG
-            // 	maxfxx[i] = f_xx_vec[j];
-            // 	maxlastdelta[i] = last_delta[j];
-            // 	#endif
-            //   }
-            //   else{
-            // 	tmp = last_delta[j] + f_xx_vec[j];
-            // 	if (tmp > max[i]){
-            // 	  max[i] = tmp;
-            // 	  #ifdef DEBUG
-            // 	  maxfxx[i] = f_xx_vec[j];
-            // 	  maxlastdelta[i] = last_delta[j];
-            // 	  #endif
-            // 	}
-            //   }
-            // }
 
             delta[i] = g_yx_vec[i] + max[i];
-            //delta[i] = logsumexp(g_yx_vec[i],max[i],false);
-        }
+		}
 
        
 

@@ -24,9 +24,9 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 1
-#define NumOfParticle 200
-#define ESSth 5
+#define NumOfIterate 10
+#define NumOfParticle 1000
+#define ESSth 2
 using namespace std;
 using namespace cv;
 
@@ -95,7 +95,7 @@ int main(void) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov = (cv::Mat_<double>(1, 1) << 10.0);
+  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 10.0);
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
@@ -103,18 +103,18 @@ int main(void) {
   // ==============================
   // Set Observation Noise
   // ==============================
-  cv::Mat ObsCov = (cv::Mat_<double>(1, 1) << 3.0);
-  std::cout << "ObsCov=" << ObsCov << std::endl << std::endl;
-  cv::Mat ObsMean = (cv::Mat_<double>(1, 1) << 0.0);
+  cv::Mat ObsCov        = (cv::Mat_<double>(1, 1) << 1.0);
+  std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
+  cv::Mat ObsMean       = (cv::Mat_<double>(1, 1) << 0.0);
   std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
 
   // ==============================
   // Set Initial Particle Noise
   // ==============================
-  cv::Mat initCov = (cv::Mat_<double>(1, 1) << 5.0);
-  std::cout << "initCov=" << initCov << std::endl << std::endl;
-  cv::Mat initMean = (cv::Mat_<double>(1, 1) << 0.0);
-  std::cout << "initMean=" << initMean << std::endl << std::endl;
+  cv::Mat initCov        = (cv::Mat_<double>(1, 1) << 5.0);
+  std::cout << "initCov  = " << initCov << std::endl << std::endl;
+  cv::Mat initMean       = (cv::Mat_<double>(1, 1) << 0.0);
+  std::cout << "initMean = " << initMean << std::endl << std::endl;
 
   std::cout << "Particle filter mat initialized!" << endl;
 
@@ -273,7 +273,9 @@ int main(void) {
 	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
 	  timer.start();
 	  std::vector< std::vector<PStateMat> > clusters;
-	  int num_of_cluster = pfm.GetClusteringEstimation(clusters, predictionMeanshiftEst);
+	  // int num_of_cluster = pfm.GetClusteringEstimation(clusters, predictionMeanshiftEst);
+	  int num_of_cluster = pfm.GetClusteringEstimation2(clusters, predictionMeanshiftEst,
+														process, Trans_likelihood);
 	  timer.stop();
 	  std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
 	  double predict_x_ms    = predictionMeanshiftEst.at<double>(0,0);
@@ -331,11 +333,13 @@ int main(void) {
 	obs_rmse.calculationRMSE();
 	ms_rmse.calculationRMSE();
 
+	std::cout << "---------------------------------------------" << std::endl;
 	std::cout << "RMSE(MMSE)  : " << mmse_rmse.getRMSE() << endl;
 	std::cout << "RMSE(MS)    : " << ms_rmse.getRMSE() << endl;
 	std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
 	std::cout << "RMSE(PFMAP) : " << pfmap_rmse.getRMSE() << endl;
 	std::cout << "RMSE(Obs)   : " << obs_rmse.getRMSE() << endl;
+	std::cout << "---------------------------------------------" << std::endl;
 	ave_mmse  += mmse_rmse.getRMSE();
 	ave_epvgm += epvgm_rmse.getRMSE();
 	ave_pfmap += pfmap_rmse.getRMSE();
@@ -350,8 +354,8 @@ int main(void) {
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   std::cout << "ObsCov      ="  << ObsCov << std::endl << std::endl;
   std::cout << "RMSE(MMSE)  : " << ave_mmse / (double)NumOfIterate << endl;
-  std::cout << "RMSE(MS)    : " << ave_ms / (double)NumOfIterate << endl;
-  std::cout << "RMSE(ML)    : " << ave_ml / (double)NumOfIterate << endl;
+  std::cout << "RMSE(MS)    : " << ave_ms   / (double)NumOfIterate << endl;
+  std::cout << "RMSE(ML)    : " << ave_ml   / (double)NumOfIterate << endl;
   std::cout << "RMSE(EPVGM) : " << ave_epvgm / (double)NumOfIterate << endl;
   std::cout << "RMSE(PFMAP) : " << ave_pfmap / (double)NumOfIterate << endl;
   std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;

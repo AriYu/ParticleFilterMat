@@ -28,37 +28,37 @@ void pfMapMat::Update(
 					  const cv::Mat &observed)
 {
   double sum = 0.0;
+  cv::Mat obshat = observed.clone(); // メモリの確保
+  cv::Mat obs_rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F); // メモリの確保
   for(int i = 0; i < particle_filter.samples_; i++){
-	cv::Mat obshat = observed.clone();
-	cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-
-	obsmodel(obshat, particle_filter.filtered_particles[i].state_, rnd_num);
+	obsmodel(obshat, particle_filter.filtered_particles[i].state_, obs_rnd_num);
 	p_yx_vec[i] = obs_likelihood(observed, obshat, 
 								 particle_filter.ObsNoiseCov_, 
 								 particle_filter.ObsNoiseMean_);
-	sum = logsumexp(sum, p_yx_vec[i], (i==0));
+	//sum = logsumexp(sum, p_yx_vec[i], (i==0));
   }
-  for(int i = 0; i < particle_filter.samples_; i++){
-  	p_yx_vec[i] = p_yx_vec[i] - sum;
-  }
+  // for(int i = 0; i < particle_filter.samples_; i++){
+  // 	p_yx_vec[i] = p_yx_vec[i] - sum;
+  // }
 
+  cv::Mat est_rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
+  cv::Mat est_state = particle_filter.filtered_particles[0].state_.clone();
   for (int i = 0; i < particle_filter.samples_; i++){
 	map[i] = 0.0;
 	sum = 0.0;
 	for(int j = 0; j < particle_filter.samples_; j++){
-	  cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-	  cv::Mat est_state = particle_filter.filtered_particles[j].state_.clone();
 	  processmodel(est_state, last_particlefilter.filtered_particles[j].state_, 
-				   ctrl_input, rnd_num);
+				   ctrl_input, est_rnd_num);
 	  p_xx_vec[j] = trans_likelihood(est_state,
 									 particle_filter.filtered_particles[i].state_,
 									 particle_filter.ProcessNoiseCov_,
 									 particle_filter.ProcessNoiseMean_);
-	  sum = logsumexp(sum, p_xx_vec[j], (j == 0));
+	  //sum = logsumexp(sum, p_xx_vec[j], (j == 0));
 	}
-	for(int j = 0; j < particle_filter.samples_; j++){
-	  p_xx_vec[j] = p_xx_vec[j] - sum;
- 	}
+	// for(int j = 0; j < particle_filter.samples_; j++){
+	//   p_xx_vec[j] = p_xx_vec[j] - sum;
+	// }
+
 	double log_weight = 0;
 	for (int j = 0; j < particle_filter.samples_; j++){
 	  log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );

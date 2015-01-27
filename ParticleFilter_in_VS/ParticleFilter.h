@@ -44,7 +44,8 @@ class PStateMat
  PStateMat(int dimX, double weight) : weight_(weight)
   {
 	assert(dimX > 0);
-	state_ = cv::Mat_<double>(dimX, 1);
+	//state_ = cv::Mat_<double>(dimX, 1);
+	state_ = cv::Mat::zeros(dimX, 1, CV_64F);
   }
   ~PStateMat(){}
   cv::Mat state_;
@@ -87,6 +88,16 @@ class ParticleFilterMat
   virtual cv::Mat GetMMSE();
   virtual cv::Mat GetML();
   int GetClusteringEstimation(std::vector< std::vector<PStateMat> > &clusters, cv::Mat &est);
+  int GetClusteringEstimation2(std::vector< std::vector<PStateMat> > &clusters,
+							   cv::Mat &est,
+							   void(*processmodel)(cv::Mat &x, 
+												   const cv::Mat &xpre, 
+												   const double &input, 
+												   const cv::Mat &rnd),
+							   double(*trans_likelihood)(const cv::Mat &x,
+														 const cv::Mat &xhat,
+														 const cv::Mat &cov,
+														 const cv::Mat &mean));
  public : 
   cv::Mat A_; 
   cv::Mat B_;
