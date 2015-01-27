@@ -25,7 +25,7 @@
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
-#define NumOfParticle 1000
+#define NumOfParticle 200
 #define ESSth 5
 using namespace std;
 using namespace cv;
@@ -66,11 +66,8 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 //! mena : •½‹Ï
 double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov, const cv::Mat &mean)
 {
-    double e = 0.0 ;
-
-    e = z.at<double>(0, 0) - zhat.at<double>(0, 0) - mean.at<double>(0, 0);
+    double e = z.at<double>(0, 0) - zhat.at<double>(0, 0) - mean.at<double>(0, 0);
     double tmp = -(e*e) / (2.0*cov.at<double>(0, 0));
-    //tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
     return tmp;
 }
 
@@ -82,23 +79,19 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 //! mena : •½‹Ï
 double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &cov, const cv::Mat &mean)
 {
-    // cv::Mat error = x - xhat;
-    // double error_norm = cv::norm(error);
     double e = x.at<double>(0,0) - xhat.at<double>(0,0);
     double tmp = -(e*e) / (2.0*cov.at<double>(0, 0));
-    //tmp = tmp - log(sqrt(2.0*CV_PI*cov.at<double>(0, 0)));
-
     return tmp;
 }
 
 
 int main(void) {
 
-  double ave_mmse = 0;
-  double ave_ml = 0;
+  double ave_mmse  = 0;
+  double ave_ml    = 0;
   double ave_epvgm = 0;
   double ave_pfmap = 0;
-  double ave_ms = 0;
+  double ave_ms    = 0;
   // ==============================
   // Set Process Noise
   // ==============================

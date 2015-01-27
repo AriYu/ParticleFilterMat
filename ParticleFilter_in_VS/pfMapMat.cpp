@@ -39,7 +39,7 @@ void pfMapMat::Update(
 	sum = logsumexp(sum, p_yx_vec[i], (i==0));
   }
   for(int i = 0; i < particle_filter.samples_; i++){
-	p_yx_vec[i] = p_yx_vec[i] - sum;
+  	p_yx_vec[i] = p_yx_vec[i] - sum;
   }
 
   for (int i = 0; i < particle_filter.samples_; i++){
@@ -54,15 +54,14 @@ void pfMapMat::Update(
 									 particle_filter.filtered_particles[i].state_,
 									 particle_filter.ProcessNoiseCov_,
 									 particle_filter.ProcessNoiseMean_);
-	  //sum = logsumexp(sum, p_xx_vec[j], (j == 0));
+	  sum = logsumexp(sum, p_xx_vec[j], (j == 0));
 	}
-	// for(int j = 0; j < particle_filter.samples_; j++){
-	//   p_xx_vec[j] = p_xx_vec[j] - sum;
- 	// }
+	for(int j = 0; j < particle_filter.samples_; j++){
+	  p_xx_vec[j] = p_xx_vec[j] - sum;
+ 	}
 	double log_weight = 0;
 	for (int j = 0; j < particle_filter.samples_; j++){
-	  //log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
-	  log_weight = logsumexp(p_xx_vec[j],last_particlefilter.filtered_particles[j].weight_ , false);
+	  log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
 	  map[i] += exp(log_weight);
 	}
 	map[i] = exp(p_yx_vec[i]) * map[i];
