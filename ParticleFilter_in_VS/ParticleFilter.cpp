@@ -619,13 +619,15 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   const double clustering_threshold = (ProcessNoiseCov_.at<double>(0,0));
   std::vector<int> indices;
   std::vector<PStateMat> target_particles;
+  std::vector<PStateMat> target_particles_pre;
   static PStateMat last_state(dimX_, 0.0);
 
   // 尤度が一定値以上のパーティクルのみをクラスタリングの対象とする.
   for(int i = 0; i < samples_; i++){
-	if(exp(filtered_particles[i].weight_) > 0.00005){
-	target_particles.push_back(filtered_particles[i]);
-	}
+	//if(exp(filtered_particles[i].weight_) > 0.00005){
+	  target_particles.push_back(filtered_particles[i]);
+	  target_particles_pre.push_back(predict_particles[i]);
+	  //}
   }
 
   // クラスタリングする
@@ -686,19 +688,22 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 
   // 1時刻前の推定値からの遷移確率を計算する
   std::vector<double> fxx(num_of_cluster, 0); // f( x(k) | x(k-1) )
-  PStateMat xhatm(last_state); // x^-(k)
-  double sum = 0; // 正規化に使う
-  cv::Mat rnd = cv::Mat::zeros(dimX_, 1, CV_PI);
-  processmodel(xhatm.state_, last_state.state_, 0, rnd);
-  for(int i = 0; i < num_of_cluster; i++){
-	fxx[i] = trans_likelihood(mmse[i], xhatm.state_, 
-							  ProcessNoiseCov_, ProcessNoiseMean_);
-	sum = logsumexp(sum, fxx[i], (i==0));
+  double sum_fxx = 0.0;
+  //PStateMat xhatm(last_state); // x^-(k)
+  // double sum = 0; // 正規化に使う
+  // cv::Mat rnd = cv::Mat::zeros(dimX_, 1, CV_PI);
+  // processmodel(xhatm.state_, last_state.state_, 0, rnd);
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	for(int i = 0; i < (int)target_particles.size(); i++){
+	  if(cluster_ind == indices[i]){
+		fxx[cluster_ind] += exp(target_particles_pre[i].weight_);
+	  }
+	}
+	sum_fxx += fxx[cluster_ind];
   }
-  // for(int i = 0; i < num_of_cluster; i++){
-  // 	fxx[i] = fxx[i] - sum; // 正規化する
-  // }
-	
+  for(int i = 0; i < num_of_cluster; i++){
+	fxx[i] = fxx[i] / sum_fxx;
+  }
   // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
   // 	std::cout << "+--------------------------------------------------------+" << std::endl;
   // 	std::cout << "cluster_prob_weight[" << cluster_ind << "]:" 
@@ -712,13 +717,13 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 
 
   // f( x(k) | x(k-1))が一番高いクラスタを探す
-  double maxprob_of_cluster = exp(fxx[0]) * cluster_prob_weight[0];
+  double maxprob_of_cluster = fxx[0] * cluster_prob_weight[0];
   int maxprob_cluster_ind = 0;
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
 	cout << "cluster prob[" << cluster_ind << "] = " 
-		 << exp(fxx[cluster_ind])*cluster_prob_weight[cluster_ind] << endl;
-  	if(maxprob_of_cluster < exp(fxx[cluster_ind])*cluster_prob_weight[cluster_ind]){
-  	  maxprob_of_cluster = exp(fxx[cluster_ind])*cluster_prob_weight[cluster_ind];
+		 << fxx[cluster_ind]*cluster_prob_weight[cluster_ind] << endl;
+  	if(maxprob_of_cluster < fxx[cluster_ind] * cluster_prob_weight[cluster_ind]){
+  	  maxprob_of_cluster = fxx[cluster_ind] * cluster_prob_weight[cluster_ind];
   	  maxprob_cluster_ind = cluster_ind;
   	}
   }

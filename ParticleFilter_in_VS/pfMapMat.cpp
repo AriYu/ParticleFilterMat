@@ -47,8 +47,11 @@ void pfMapMat::Update(
 	map[i] = 0.0;
 	sum = 0.0;
 	for(int j = 0; j < particle_filter.samples_; j++){
-	  processmodel(est_state, last_particlefilter.filtered_particles[j].state_, 
+	  processmodel(est_state, particle_filter.predict_particles[j].state_, 
 				   ctrl_input, est_rnd_num);
+	  // processmodel(est_state, last_particlefilter.filtered_particles[j].state_, 
+	  // 			   ctrl_input, est_rnd_num);
+
 	  p_xx_vec[j] = trans_likelihood(est_state,
 									 particle_filter.filtered_particles[i].state_,
 									 particle_filter.ProcessNoiseCov_,
@@ -56,7 +59,7 @@ void pfMapMat::Update(
 	  //sum = logsumexp(sum, p_xx_vec[j], (j == 0));
 	}
 	// for(int j = 0; j < particle_filter.samples_; j++){
-	//   p_xx_vec[j] = p_xx_vec[j] - sum;
+	//   // p_xx_vec[j] = p_xx_vec[j] - sum;
 	// }
 
 	double log_weight = 0;

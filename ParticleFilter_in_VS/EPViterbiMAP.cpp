@@ -137,13 +137,13 @@ void EPViterbiMat::Recursion(
                                          obshat, 
                                          particle_filter.ObsNoiseCov_, 
                                          particle_filter.ObsNoiseMean_);
-            //sum = logsumexp(sum, g_yx_vec[i], (i==0));
+            sum = logsumexp(sum, g_yx_vec[i], (i==0));
         }
         // ===============================================
         // p(y_k | x_k)の正規化
-        // for(int i = 0; i < particle_filter.samples_; i++){
-        //     g_yx_vec[i] = g_yx_vec[i] - sum;
-        // }
+        for(int i = 0; i < particle_filter.samples_; i++){
+            g_yx_vec[i] = g_yx_vec[i] - sum;
+        }
 
 		cv::Mat est_rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
 		cv::Mat est_state = particle_filter.filtered_particles[0].state_.clone();
@@ -153,21 +153,25 @@ void EPViterbiMat::Recursion(
             // calc p(x_k(i) | x_k-1(j))
             sum = 0.0;
             for (int j = 0; j < particle_filter.samples_; j++){
-                processmodel(est_state, 
-                             last_particlefilter.filtered_particles[j].state_, 
+                // processmodel(est_state, 
+                //              last_particlefilter.filtered_particles[j].state_, 
+                //              ctrl_input, est_rnd_num);
+				processmodel(est_state, 
+                             particle_filter.predict_particles[j].state_, 
                              ctrl_input, est_rnd_num);
                 f_xx_vec[j] = trans_likelihood(est_state,
                                                particle_filter.filtered_particles[i].state_,
                                                particle_filter.ProcessNoiseCov_,
                                                particle_filter.ProcessNoiseMean_);
-                //sum = logsumexp(sum, f_xx_vec[j], (j==0));
+				//sum = logsumexp(sum, f_xx_vec[j], (j==0));
             }
 
             // ===============================================
             //p(x_k(i) | x_k-1(j))の正規化
             // for(int j = 0; j < particle_filter.samples_; j++){
-			//     f_xx_vec[j] = f_xx_vec[j] - sum;					
+			//   f_xx_vec[j] = f_xx_vec[j] - sum;
 			// }
+
 
             // ===============================================
             // Search max(delta_k-1 + log(p(x_k(i) | x_k-1(j))))
