@@ -19,6 +19,11 @@ $ source plots.sh
 ## plots.sh
 以下のスクリプトを一気に実行するシェルスクリプト．
 
+```sh
+$ source plots.sh >& plot.log 
+```
+
+エラー出力は`plot.log`に書き出される.
 ### plotestimation.plt
 各推定手法による推定結果をプロット
 
