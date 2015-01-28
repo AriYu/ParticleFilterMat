@@ -701,9 +701,9 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 	}
 	sum_fxx += fxx[cluster_ind];
   }
-  for(int i = 0; i < num_of_cluster; i++){
-	fxx[i] = fxx[i] / sum_fxx;
-  }
+  // for(int i = 0; i < num_of_cluster; i++){
+  // 	fxx[i] = fxx[i] / sum_fxx;
+  // }
   // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
   // 	std::cout << "+--------------------------------------------------------+" << std::endl;
   // 	std::cout << "cluster_prob_weight[" << cluster_ind << "]:" 
