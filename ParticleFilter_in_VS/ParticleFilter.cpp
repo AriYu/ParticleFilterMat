@@ -624,11 +624,11 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 
   // 尤度が一定値以上のパーティクルのみをクラスタリングの対象とする.
   for(int i = 0; i < samples_; i++){
-	//	if(exp(filtered_particles[i].weight_) > 0.00005){
-	  // target_particles.push_back(filtered_particles[i]);
-	  target_particles.push_back(predict_particles[i]);
+	if(exp(filtered_particles[i].weight_) > 0.00005){
+	  target_particles.push_back(filtered_particles[i]);
+	  //target_particles.push_back(predict_particles[i]);
 	  target_particles_pre.push_back(predict_particles[i]);
-	  //	}
+	}
   }
 
   // クラスタリングする
@@ -735,29 +735,29 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   // }
 
 
-  // f( x(k) | x(k-1))が一番高いクラスタを探す
-  // double maxprob_of_cluster = fxx[0] * cluster_prob_weight[0];
-  // int maxprob_cluster_ind = 0;
-  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-  // 	cout << "cluster prob[" << cluster_ind << "] = " 
-  // 		 << fxx[cluster_ind]*cluster_prob_weight[cluster_ind] << endl;
-  // 	if(maxprob_of_cluster < fxx[cluster_ind] * cluster_prob_weight[cluster_ind]){
-  // 	  maxprob_of_cluster = fxx[cluster_ind] * cluster_prob_weight[cluster_ind];
-  // 	  maxprob_cluster_ind = cluster_ind;
-  // 	}
-  // }
-
-  // パーティクルの数が一番多いクラスタを探索する
-  double maxprob_of_cluster = cluster_prob_num[0];
+  // 重みが一番高いクラスタを探す
+  double maxprob_of_cluster = cluster_prob_weight[0];
   int maxprob_cluster_ind = 0;
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
   	cout << "cluster prob[" << cluster_ind << "] = " 
-  		 << cluster_prob_num[cluster_ind] << endl;
-  	if(maxprob_of_cluster < cluster_prob_num[cluster_ind]){
-  	  maxprob_of_cluster = cluster_prob_num[cluster_ind];
+  		 << cluster_prob_weight[cluster_ind] << endl;
+  	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]){
+  	  maxprob_of_cluster = cluster_prob_weight[cluster_ind];
   	  maxprob_cluster_ind = cluster_ind;
   	}
   }
+
+  // パーティクルの数が一番多いクラスタを探索する
+  // double maxprob_of_cluster = cluster_prob_num[0];
+  // int maxprob_cluster_ind = 0;
+  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+  // 	cout << "cluster prob[" << cluster_ind << "] = " 
+  // 		 << cluster_prob_num[cluster_ind] << endl;
+  // 	if(maxprob_of_cluster < cluster_prob_num[cluster_ind]){
+  // 	  maxprob_of_cluster = cluster_prob_num[cluster_ind];
+  // 	  maxprob_cluster_ind = cluster_ind;
+  // 	}
+  // }
 
   // 母分散が一番小さいクラスタを選ぶ
   // double minprob_of_cluster = fabs(variances[0] - ObsNoiseCov_.at<double>(0,0));

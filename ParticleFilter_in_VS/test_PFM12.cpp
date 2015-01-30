@@ -31,7 +31,7 @@ using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 50.0;          //! loop limit
+const double T = 200.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -273,8 +273,6 @@ int main(void) {
 	  double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
 	  // ------------------------------
 
-	  // Resampling step
-	  pfm.Resampling(measurement, ESSth);
 
 	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
 	  timer.start();
@@ -285,6 +283,10 @@ int main(void) {
 	  timer.stop();
 	  std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
 	  double predict_x_ms    = predictionMeanshiftEst.at<double>(0,0);
+
+	  // Resampling step
+	  pfm.Resampling(measurement, ESSth);
+
 
 #ifdef PARTICLE_IO
 	  for (int i = 0; i < pfm.samples_; i++){
