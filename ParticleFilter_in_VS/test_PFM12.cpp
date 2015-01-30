@@ -272,6 +272,10 @@ int main(void) {
 	  Mat    predictionPFMAP = pfmap.GetEstimation();
 	  double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
 	  // ------------------------------
+
+	  // Resampling step
+	  pfm.Resampling(measurement, ESSth);
+
 	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
 	  timer.start();
 	  std::vector< std::vector<PStateMat> > clusters;
@@ -282,8 +286,6 @@ int main(void) {
 	  std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
 	  double predict_x_ms    = predictionMeanshiftEst.at<double>(0,0);
 
-	  // Resampling step
-	  pfm.Resampling(measurement, ESSth);
 #ifdef PARTICLE_IO
 	  for (int i = 0; i < pfm.samples_; i++){
 		particles_after_file << pfm.predict_particles[i].state_.at<double>(0, 0) << " " 
