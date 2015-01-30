@@ -652,6 +652,24 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 	}
   }
 
+  // 各クラスタの母分散（variances）を求める（とりあえず一次元のみ）
+  // まず平均値（means）を求める
+  std::vector<double> means(num_of_cluster,0);
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	for(int i = 0; i < clusters[cluster_ind].size(); i++){
+	  means[cluster_ind] += clusters[cluster_ind][i].state_.at<double>(0,0);
+	}
+	means[cluster_ind] = means[cluster_ind] / (double)clusters[cluster_ind].size();
+  }
+  std::vector<double> variances(num_of_cluster, 0);
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	for(int i = 0; i < clusters[cluster_ind].size(); i++){
+	  variances[cluster_ind] += (pow(measn[cluster_ind] 
+									 - clusters[cluster_ind][i].state_.at<double>(0,0), 2.0));
+	}
+	variances[cluster_ind] = variances[cluster_ind] / (double)clusters[cluster_ind].size();
+  }
+
   // 各クラスタの重みの和とパーティクルの数を求める
   double sum_of_weight = 0;
   double sum_of_particle = 0;
