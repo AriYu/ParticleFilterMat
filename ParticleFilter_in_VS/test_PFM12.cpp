@@ -189,6 +189,8 @@ int main(void) {
 	cv::Mat x0 = (cv::Mat_<double>(state_dimension, 1) << 0.0);
 	cv::Mat p0 = (cv::Mat_<double>(state_dimension, 1) << 1.0);
 	UnscentedKalmanFilter ukf(state_dimension, 1, x0, p0);
+	ukf.SetProcessNoise(ProcessCov);
+	ukf.SetObservationNoise(ObsCov);
 
 	// ==============================
 	// Root Mean Square Error
@@ -291,6 +293,7 @@ int main(void) {
 	  // ==================================
 	  ukf.Update(process, observation, measurement);
 	  cv::Mat ukf_est = ukf.GetEstimation();
+	  cout  << "ukf : " << ukf_est << endl;
 	  
 	  // ==============================
 	  // Get Estimation
@@ -306,8 +309,6 @@ int main(void) {
 	  double predict_x_ms    = predictionMeanshiftEst.at<double>(0,0);
 	  // ------------------------------
 
-
-	 
 	  //=======================================
 	  // Resampling step(Particle Filter Step)
 	  //=======================================
@@ -372,9 +373,10 @@ int main(void) {
 	std::cout << "RMSE(MS)    : " << ms_rmse.getRMSE() << endl;
 	std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
 	std::cout << "RMSE(PFMAP) : " << pfmap_rmse.getRMSE() << endl;
-	std::cout << "RMSE(UKF) : " << ukf_rmse.getRMSE() << endl;
+	std::cout << "RMSE(UKF)   : " << ukf_rmse.getRMSE() << endl;
 	std::cout << "RMSE(Obs)   : " << obs_rmse.getRMSE() << endl;
 	std::cout << "---------------------------------------------" << std::endl;
+
 	ave_mmse  += mmse_rmse.getRMSE();
 	ave_epvgm += epvgm_rmse.getRMSE();
 	ave_pfmap += pfmap_rmse.getRMSE();
