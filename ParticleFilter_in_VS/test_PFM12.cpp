@@ -293,8 +293,7 @@ int main(void) {
 	  // ==================================
 	  ukf.Update(process, observation, measurement);
 	  cv::Mat ukf_est = ukf.GetEstimation();
-	  cout  << "ukf : " << ukf_est << endl;
-	  
+		  
 	  // ==============================
 	  // Get Estimation
 	  // ==============================
@@ -307,8 +306,7 @@ int main(void) {
 	  Mat    predictionPFMAP = pfmap.GetEstimation();
 	  double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
 	  double predict_x_ms    = predictionMeanshiftEst.at<double>(0,0);
-	  // ------------------------------
-
+	
 	  //=======================================
 	  // Resampling step(Particle Filter Step)
 	  //=======================================
@@ -331,7 +329,8 @@ int main(void) {
 		}
 		clustered_file[k] << endl; clustered_file[k] << endl;
 	  }
-#endif
+#endif // PARTICLE_IO
+
 	  // ==============================
 	  // for RMSE
 	  // ==============================
@@ -342,6 +341,7 @@ int main(void) {
 	  ms_rmse.storeData(state.at<double>(0,0), predict_x_ms);
 	  obs_rmse.storeData(state.at<double>(0,0), measurement.at<double>(0,0));
 	  ukf_rmse.storeData(state.at<double>(0,0), ukf_est.at<double>(0,0));
+
 	  // ==============================
 	  // Save Estimated State
 	  // ==============================
@@ -369,12 +369,12 @@ int main(void) {
 	ukf_rmse.calculationRMSE();
 
 	std::cout << "---------------------------------------------" << std::endl;
-	std::cout << "RMSE(MMSE)  : " << mmse_rmse.getRMSE() << endl;
-	std::cout << "RMSE(MS)    : " << ms_rmse.getRMSE() << endl;
+	std::cout << "RMSE(MMSE)  : " << mmse_rmse.getRMSE()  << endl;
+	std::cout << "RMSE(MS)    : " << ms_rmse.getRMSE()    << endl;
 	std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
 	std::cout << "RMSE(PFMAP) : " << pfmap_rmse.getRMSE() << endl;
-	std::cout << "RMSE(UKF)   : " << ukf_rmse.getRMSE() << endl;
-	std::cout << "RMSE(Obs)   : " << obs_rmse.getRMSE() << endl;
+	std::cout << "RMSE(UKF)   : " << ukf_rmse.getRMSE()   << endl;
+	std::cout << "RMSE(Obs)   : " << obs_rmse.getRMSE()   << endl;
 	std::cout << "---------------------------------------------" << std::endl;
 
 	ave_mmse  += mmse_rmse.getRMSE();
@@ -387,11 +387,12 @@ int main(void) {
 
 	output.close();
   }
+
   std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
-  std::cout << "nonlinear, multimodal model" << endl;
-  std::cout << "Particles   : " << NumOfParticle << endl;
-  std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
-  std::cout << "ObsCov      ="  << ObsCov << std::endl << std::endl;
+  std::cout << "nonlinear, multimodal model"     << std::endl;
+  std::cout << "Particles   : " << NumOfParticle << std::endl;
+  std::cout << "ProcessCov  = " << ProcessCov    << std::endl << std::endl;
+  std::cout << "ObsCov      ="  << ObsCov        << std::endl << std::endl;
   std::cout << "RMSE(MMSE)  : " << ave_mmse  / (double)NumOfIterate << endl;
   std::cout << "RMSE(MS)    : " << ave_ms    / (double)NumOfIterate << endl;
   std::cout << "RMSE(ML)    : " << ave_ml    / (double)NumOfIterate << endl;
