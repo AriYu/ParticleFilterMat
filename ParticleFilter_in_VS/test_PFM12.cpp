@@ -365,7 +365,7 @@ int main(void) {
   std::cout << "RMSE(EPVGM) : " << ave_epvgm / (double)NumOfIterate << endl;
   std::cout << "RMSE(PFMAP) : " << ave_pfmap / (double)NumOfIterate << endl;
   std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
-    
+
   //std::system("wgnuplot -persist plot4.plt");
   //std::system("gnuplot -persist plot10.plt");
 
