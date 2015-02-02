@@ -24,14 +24,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 10
+#define NumOfIterate 1
 #define NumOfParticle 1000
 #define ESSth 5
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 200.0;          //! loop limit
+const double T = 50.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -45,7 +45,7 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 	  + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
 	  +  8.0 * cos(1.2*k)
 	  + rnd.at<double>(0, 0);
-	//  x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
+	//	  x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
 }
 
 

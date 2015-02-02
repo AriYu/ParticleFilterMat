@@ -736,13 +736,25 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 
 
   // 重みが一番高いクラスタを探す
-  double maxprob_of_cluster = cluster_prob_weight[0];
+  // double maxprob_of_cluster = cluster_prob_weight[0];
+  // int maxprob_cluster_ind = 0;
+  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+  // 	cout << "cluster prob[" << cluster_ind << "] = " 
+  // 		 << cluster_prob_weight[cluster_ind] << endl;
+  // 	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]){
+  // 	  maxprob_of_cluster = cluster_prob_weight[cluster_ind];
+  // 	  maxprob_cluster_ind = cluster_ind;
+  // 	}
+  // }
+
+  // 1時刻前の重みと現時刻の重みの積が一番高いクラスタを探す
+  double maxprob_of_cluster = fxx[0] * cluster_prob_weight[0];
   int maxprob_cluster_ind = 0;
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
   	cout << "cluster prob[" << cluster_ind << "] = " 
-  		 << cluster_prob_weight[cluster_ind] << endl;
-  	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]){
-  	  maxprob_of_cluster = cluster_prob_weight[cluster_ind];
+  		 << fxx[cluster_ind] * cluster_prob_weight[cluster_ind] << endl;
+  	if(maxprob_of_cluster < fxx[cluster_ind] * cluster_prob_weight[cluster_ind]){
+  	  maxprob_of_cluster = fxx[cluster_ind] * cluster_prob_weight[cluster_ind];
   	  maxprob_cluster_ind = cluster_ind;
   	}
   }
