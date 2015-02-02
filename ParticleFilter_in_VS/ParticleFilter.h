@@ -113,6 +113,7 @@ class ParticleFilterMat
   int samples_; // パーティクルの数
   std::vector< PStateMat > predict_particles;
   std::vector< PStateMat > filtered_particles;
+  std::vector< PStateMat > last_filtered_particles;
 };
 
 class PFilter

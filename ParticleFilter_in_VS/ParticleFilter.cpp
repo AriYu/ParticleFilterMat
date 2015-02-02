@@ -180,6 +180,12 @@ ParticleFilterMat::ParticleFilterMat(const ParticleFilterMat& x)
 		x.filtered_particles.end(),
 		this->filtered_particles.begin());
 
+	this->last_filtered_particles.resize(x.last_filtered_particles.size());
+	std::copy(x.last_filtered_particles.begin(),
+		x.last_filtered_particles.end(),
+		this->last_filtered_particles.begin());
+
+
 }
 
 ParticleFilterMat::~ParticleFilterMat(){}
@@ -200,12 +206,15 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 
 	this->predict_particles.reserve(samples_);
 	this->filtered_particles.reserve(samples_);
+	this->last_filtered_particles.reserve(samples_);
+
 	PStateMat particle(dimX_, log(1.0 / samples_));
 
 	for (int i = 0; i < samples_; i++)
 	{
 		predict_particles.push_back(particle);
 		filtered_particles.push_back(particle);
+		last_filtered_particles.push_back(particle);
 	}
 
 	for (int j = 0; j < dimX_; j++)
@@ -216,6 +225,7 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 			filtered_particles[i].state_.at<double>(j, 0)
 				= sigma(engine);
 			filtered_particles[i].weight_ = log((1.0 / (double)samples_));
+			last_filtered_particles[i].weight_ = filtered_particles[i].weight_;
 			predict_particles[i].state_.at<double>(j, 0)
 				= sigma(engine);
 			predict_particles[i].weight_ = log((1.0 / (double)samples_));
@@ -473,6 +483,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
             if (T[i] < Q[j]){
                 predict_particles[i].state_ = filtered_particles[j].state_;
                 predict_particles[i].weight_ = log(mean);
+				last_filtered_particles[i] = filtered_particles[i];
                 i++;
             }
             else{
@@ -488,6 +499,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
         isResampled_ = false;
         for (int i = 0; i < samples_; i++){
             predict_particles[i] = filtered_particles[i];
+			last_filtered_particles[i] = filtered_particles[i];
         }
     }
 }
@@ -627,7 +639,7 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 	if(exp(filtered_particles[i].weight_) > 0.00005){
 	  target_particles.push_back(filtered_particles[i]);
 	  //target_particles.push_back(predict_particles[i]);
-	  target_particles_pre.push_back(predict_particles[i]);
+	  target_particles_pre.push_back(last_filtered_particles[i]);
 	}
   }
 

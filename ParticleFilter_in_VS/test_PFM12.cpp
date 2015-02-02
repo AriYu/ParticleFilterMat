@@ -16,6 +16,8 @@
 #include "EPViterbiMAP.h"
 #include "pfMapMat.h"
 
+#include "unscented_kalman_filter.h"
+
 #include "RootMeanSquareError.h"
 
 #include "mean_shift_clustering.h"
@@ -94,6 +96,7 @@ int main(void) {
   double ave_epvgm = 0;
   double ave_pfmap = 0;
   double ave_ms    = 0;
+  double ave_ukf   = 0;
   // ==============================
   // Set Process Noise
   // ==============================
@@ -181,6 +184,13 @@ int main(void) {
 	pfmap.Initialization(pfm);
 
 	// ==============================
+	// Unscented Kalman Filter
+	// ==============================
+	cv::Mat x0 = (cv::Mat_<double>(state_dimension, 1) << 0.0);
+	cv::Mat p0 = (cv::Mat_<double>(state_dimension, 1) << 1.0);
+	UnscentedKalmanFilter ukf(state_dimension, 1, x0, p0);
+
+	// ==============================
 	// Root Mean Square Error
 	// ==============================
 	RMSE mmse_rmse;
@@ -189,6 +199,7 @@ int main(void) {
 	RMSE pfmap_rmse;
 	RMSE ms_rmse;
 	RMSE obs_rmse;
+	RMSE ukf_rmse;
 
 	//cv::RNG rng((unsigned)time(NULL));            // random generater
 	static random_device rdev;
@@ -251,6 +262,7 @@ int main(void) {
 	  				  Obs_likelihood, Trans_likelihood, input, measurement);
 	  timer.stop();
 	  std::cout << "EP-VGM time :" << timer.getElapsedTime() << std::endl;
+
 	  // ==============================
 	  // Particle Based MAP Process
 	  // ==============================
@@ -260,6 +272,26 @@ int main(void) {
 	  timer.stop();
 	  std::cout << "pf-MAP time :" << timer.getElapsedTime() << std::endl;
 
+
+	  // ==============================
+	  // MeanShift method
+	  // ==============================
+	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
+	  timer.start();
+	  std::vector< std::vector<PStateMat> > clusters;
+	  // int num_of_cluster = pfm.GetClusteringEstimation(clusters, predictionMeanshiftEst);
+	  int num_of_cluster = pfm.GetClusteringEstimation2(clusters, predictionMeanshiftEst,
+														process, Trans_likelihood);
+	  timer.stop();
+	  std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
+	  
+
+	  // ==================================
+	  // Unscented Kalman Filter Process
+	  // ==================================
+	  ukf.Update(process, observation, measurement);
+	  cv::Mat ukf_est = ukf.GetEstimation();
+	  
 	  // ==============================
 	  // Get Estimation
 	  // ==============================
@@ -271,20 +303,14 @@ int main(void) {
 	  double predict_x_ml    = predictionML.at<double>(0, 0);
 	  Mat    predictionPFMAP = pfmap.GetEstimation();
 	  double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
+	  double predict_x_ms    = predictionMeanshiftEst.at<double>(0,0);
 	  // ------------------------------
 
 
-	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
-	  timer.start();
-	  std::vector< std::vector<PStateMat> > clusters;
-	  // int num_of_cluster = pfm.GetClusteringEstimation(clusters, predictionMeanshiftEst);
-	  int num_of_cluster = pfm.GetClusteringEstimation2(clusters, predictionMeanshiftEst,
-														process, Trans_likelihood);
-	  timer.stop();
-	  std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
-	  double predict_x_ms    = predictionMeanshiftEst.at<double>(0,0);
-
-	  // Resampling step
+	 
+	  //=======================================
+	  // Resampling step(Particle Filter Step)
+	  //=======================================
 	  pfm.Resampling(measurement, ESSth);
 
 
@@ -295,6 +321,7 @@ int main(void) {
 	  }
 	  particles_after_file << endl; particles_after_file << endl;
 #endif // PARTICLE_IO
+
 #ifdef PARTICLE_IO
 	  for(int cluster = 0; cluster < (int)clusters.size(); cluster++){
 		for(int number = 0; number < (int)clusters[cluster].size(); number++){
@@ -313,7 +340,7 @@ int main(void) {
 	  pfmap_rmse.storeData(state.at<double>(0, 0), predict_x_pfmap);
 	  ms_rmse.storeData(state.at<double>(0,0), predict_x_ms);
 	  obs_rmse.storeData(state.at<double>(0,0), measurement.at<double>(0,0));
-					
+	  ukf_rmse.storeData(state.at<double>(0,0), ukf_est.at<double>(0,0));
 	  // ==============================
 	  // Save Estimated State
 	  // ==============================
@@ -338,12 +365,14 @@ int main(void) {
 	pfmap_rmse.calculationRMSE();
 	obs_rmse.calculationRMSE();
 	ms_rmse.calculationRMSE();
+	ukf_rmse.calculationRMSE();
 
 	std::cout << "---------------------------------------------" << std::endl;
 	std::cout << "RMSE(MMSE)  : " << mmse_rmse.getRMSE() << endl;
 	std::cout << "RMSE(MS)    : " << ms_rmse.getRMSE() << endl;
 	std::cout << "RMSE(EPVGM) : " << epvgm_rmse.getRMSE() << endl;
 	std::cout << "RMSE(PFMAP) : " << pfmap_rmse.getRMSE() << endl;
+	std::cout << "RMSE(UKF) : " << ukf_rmse.getRMSE() << endl;
 	std::cout << "RMSE(Obs)   : " << obs_rmse.getRMSE() << endl;
 	std::cout << "---------------------------------------------" << std::endl;
 	ave_mmse  += mmse_rmse.getRMSE();
@@ -351,6 +380,8 @@ int main(void) {
 	ave_pfmap += pfmap_rmse.getRMSE();
 	ave_ml    += ml_rmse.getRMSE();
 	ave_ms    += ms_rmse.getRMSE();
+	ave_ukf   += ukf_rmse.getRMSE();
+
 
 	output.close();
   }
@@ -359,11 +390,12 @@ int main(void) {
   std::cout << "Particles   : " << NumOfParticle << endl;
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   std::cout << "ObsCov      ="  << ObsCov << std::endl << std::endl;
-  std::cout << "RMSE(MMSE)  : " << ave_mmse / (double)NumOfIterate << endl;
-  std::cout << "RMSE(MS)    : " << ave_ms   / (double)NumOfIterate << endl;
-  std::cout << "RMSE(ML)    : " << ave_ml   / (double)NumOfIterate << endl;
+  std::cout << "RMSE(MMSE)  : " << ave_mmse  / (double)NumOfIterate << endl;
+  std::cout << "RMSE(MS)    : " << ave_ms    / (double)NumOfIterate << endl;
+  std::cout << "RMSE(ML)    : " << ave_ml    / (double)NumOfIterate << endl;
   std::cout << "RMSE(EPVGM) : " << ave_epvgm / (double)NumOfIterate << endl;
   std::cout << "RMSE(PFMAP) : " << ave_pfmap / (double)NumOfIterate << endl;
+  std::cout << "RMSE(UKF)   : " << ave_ukf   / (double)NumOfIterate << endl;
   std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
 
   //std::system("wgnuplot -persist plot4.plt");

@@ -53,18 +53,26 @@ void pfMapMat::Update(
 	  // 			   ctrl_input, est_rnd_num);
 
 	  p_xx_vec[j] = trans_likelihood(est_state,
-									 particle_filter.filtered_particles[i].state_,
-									 particle_filter.ProcessNoiseCov_,
-									 particle_filter.ProcessNoiseMean_);
-	  //sum = logsumexp(sum, p_xx_vec[j], (j == 0));
+	  								 particle_filter.filtered_particles[i].state_,
+	  								 particle_filter.ProcessNoiseCov_,
+	  								 particle_filter.ProcessNoiseMean_);
+
+	  // if(i == j){
+	  // 	p_xx_vec[j] = log(1.0);
+	  // }else{
+	  // 	p_xx_vec[j] = log(0.1);
+	  // }
+	  // sum = logsumexp(sum, p_xx_vec[j], (j == 0));
 	}
 	// for(int j = 0; j < particle_filter.samples_; j++){
-	//   // p_xx_vec[j] = p_xx_vec[j] - sum;
+	//    p_xx_vec[j] = p_xx_vec[j] - sum;
 	// }
 
 	double log_weight = 0;
 	for (int j = 0; j < particle_filter.samples_; j++){
-	  log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
+	  // log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
+	  // log_weight = (p_xx_vec[j] + particle_filter.predict_particles[j].weight_);
+	  log_weight = (p_xx_vec[j] + particle_filter.last_filtered_particles[j].weight_);
 	  map[i] += exp(log_weight);
 	}
 	map[i] = exp(p_yx_vec[i]) * map[i];
