@@ -237,6 +237,7 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 void ParticleFilterMat::SetProcessNoise(cv::Mat Cov, cv::Mat Mean)
 {
 	ProcessNoiseCov_ = Cov.clone();
+	ProcessNoiseCov_ = ProcessNoiseCov_;
 	ProcessNoiseMean_ = Mean.clone();
 	isSetProcessNoise_ = true;
 }
@@ -244,6 +245,7 @@ void ParticleFilterMat::SetProcessNoise(cv::Mat Cov, cv::Mat Mean)
 void ParticleFilterMat::SetObservationNoise(cv::Mat Cov, cv::Mat Mean)
 {
 	ObsNoiseCov_ = Cov.clone();
+	ObsNoiseCov_ = ObsNoiseCov_;
 	ObsNoiseMean_ = Mean.clone();
 	isSetObsNoise_ = true;
 }
