@@ -214,9 +214,9 @@ int main(void) {
 	double input = 0.0;
 	MeasureTime timer;
 
-	std::cout << "\rloop == " << loop  << endl;
 	for (k = 0; k < T; k += 1.0){
-	  std::cout << "\rloop == " << loop << "\tk == " << k << "\r" << endl;
+	  std::cout << "\rloop == " << loop << " / " <<  NumOfIterate 
+				<< "\tk == " << k << "\r" << endl;
 
 	  // ==============================
 	  // Generate Actual Value
