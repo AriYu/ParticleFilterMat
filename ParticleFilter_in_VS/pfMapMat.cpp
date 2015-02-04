@@ -35,11 +35,11 @@ void pfMapMat::Update(
 	p_yx_vec[i] = obs_likelihood(observed, obshat, 
 								 particle_filter.ObsNoiseCov_, 
 								 particle_filter.ObsNoiseMean_);
-	//sum = logsumexp(sum, p_yx_vec[i], (i==0));
+	sum = logsumexp(sum, p_yx_vec[i], (i==0));
   }
-  // for(int i = 0; i < particle_filter.samples_; i++){
-  // 	p_yx_vec[i] = p_yx_vec[i] - sum;
-  // }
+  for(int i = 0; i < particle_filter.samples_; i++){
+  	p_yx_vec[i] = p_yx_vec[i] - sum;
+  }
 
   cv::Mat est_rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
   cv::Mat est_state = particle_filter.filtered_particles[0].state_.clone();

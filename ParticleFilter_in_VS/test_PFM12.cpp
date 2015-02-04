@@ -26,14 +26,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 1
+#define NumOfIterate 5
 #define NumOfParticle 1000
-#define ESSth 20
+#define ESSth 45
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 50.0;          //! loop limit
+const double T = 200.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -391,6 +391,7 @@ int main(void) {
   std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
   std::cout << "nonlinear, multimodal model"     << std::endl;
   std::cout << "Particles   : " << NumOfParticle << std::endl;
+  std::cout << "ESS th      : " << ESSth         << std::endl;
   std::cout << "ProcessCov  = " << ProcessCov    << std::endl << std::endl;
   std::cout << "ObsCov      ="  << ObsCov        << std::endl << std::endl;
   std::cout << "RMSE(MMSE)  : " << ave_mmse  / (double)NumOfIterate << endl;

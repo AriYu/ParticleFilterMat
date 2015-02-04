@@ -485,7 +485,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
             if (T[i] < Q[j]){
                 predict_particles[i].state_ = filtered_particles[j].state_;
                 predict_particles[i].weight_ = log(mean);
-				last_filtered_particles[i] = filtered_particles[i];
+				last_filtered_particles[i] = filtered_particles[j];
                 i++;
             }
             else{
@@ -644,7 +644,7 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 	  target_particles.push_back(filtered_particles[i]);
 	  //target_particles.push_back(predict_particles[i]);
 	  target_particles_pre.push_back(last_filtered_particles[i]);
-	}
+	 }
   }
 
   // クラスタリングする
@@ -752,16 +752,16 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 
 
   // 重みが一番高いクラスタを探す
-  double maxprob_of_cluster = cluster_prob_weight[0];
-  int maxprob_cluster_ind = 0;
-  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-  	cout << "cluster prob[" << cluster_ind << "] = " 
-  		 << cluster_prob_weight[cluster_ind] << endl;
-  	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]){
-  	  maxprob_of_cluster = cluster_prob_weight[cluster_ind];
-  	  maxprob_cluster_ind = cluster_ind;
-  	}
-  }
+  // double maxprob_of_cluster = cluster_prob_weight[0];
+  // int maxprob_cluster_ind = 0;
+  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+  // 	cout << "cluster prob[" << cluster_ind << "] = " 
+  // 		 << cluster_prob_weight[cluster_ind] << endl;
+  // 	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]){
+  // 	  maxprob_of_cluster = cluster_prob_weight[cluster_ind];
+  // 	  maxprob_cluster_ind = cluster_ind;
+  // 	}
+  // }
 
   // 1時刻前の重みと現時刻の重みの積が一番高いクラスタを探す
   // double maxprob_of_cluster = fxx[0] * cluster_prob_weight[0];
@@ -775,7 +775,19 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   // 	}
   // }
 
-  // パーティクルの数が一番多いクラスタを探索する
+  // 1時刻前の重みが一番高いクラスタを探す
+  // double maxprob_of_cluster = fxx[0];
+  // int maxprob_cluster_ind = 0;
+  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+  // 	cout << "cluster prob[" << cluster_ind << "] = " 
+  // 		 << fxx[cluster_ind] << endl;
+  // 	if(maxprob_of_cluster < fxx[cluster_ind]){
+  // 	  maxprob_of_cluster = fxx[cluster_ind];
+  // 	  maxprob_cluster_ind = cluster_ind;
+  // 	}
+  // }
+
+  // // パーティクルの数が一番多いクラスタを探索する
   // double maxprob_of_cluster = cluster_prob_num[0];
   // int maxprob_cluster_ind = 0;
   // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
@@ -786,6 +798,46 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   // 	  maxprob_cluster_ind = cluster_ind;
   // 	}
   // }
+
+  // パーティクルの数+重みが一番多いクラスタを探索する
+  // double maxprob_of_cluster = cluster_prob_weight[0]+cluster_prob_num[0];
+  // int maxprob_cluster_ind = 0;
+  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+  // 	cout << "cluster prob[" << cluster_ind << "] = " 
+  // 		 << cluster_prob_weight[0]+cluster_prob_num[cluster_ind] << endl;
+  // 	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]+cluster_prob_num[cluster_ind]){
+  // 	  maxprob_of_cluster = cluster_prob_weight[cluster_ind]+cluster_prob_num[cluster_ind];
+  // 	  maxprob_cluster_ind = cluster_ind;
+  // 	}
+  // }
+
+  // 1時刻前の重み+現時刻の重みが一番多いクラスタを探索する
+  // double maxprob_of_cluster = cluster_prob_weight[0]*fxx[0];
+  // int maxprob_cluster_ind = 0;
+  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+  // 	cout << "cluster prob[" << cluster_ind << "] = " 
+  // 		 << cluster_prob_weight[0]*fxx[cluster_ind] << endl;
+  // 	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]*fxx[cluster_ind]){
+  // 	  maxprob_of_cluster = cluster_prob_weight[cluster_ind]*fxx[cluster_ind];
+  // 	  maxprob_cluster_ind = cluster_ind;
+  // 	}
+  // }
+
+  // パーティクルの数+重み+1時刻前の重みが一番多いクラスタを探索する
+  double maxprob_of_cluster = fxx[0]*cluster_prob_weight[0]*cluster_prob_num[0];
+  int maxprob_cluster_ind = 0;
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+  	cout << "cluster prob[" << cluster_ind << "] = " 
+  		 << fxx[cluster_ind]
+  	  *cluster_prob_weight[cluster_ind]
+  	  *cluster_prob_num[cluster_ind] << endl;
+  	if(maxprob_of_cluster < 
+  	   fxx[cluster_ind] * cluster_prob_weight[cluster_ind] * cluster_prob_num[cluster_ind]){
+  	  maxprob_of_cluster = 
+  		fxx[cluster_ind] * cluster_prob_weight[cluster_ind] * cluster_prob_num[cluster_ind];
+  	  maxprob_cluster_ind = cluster_ind;
+  	}
+  }
 
   // パーティクルの数x重みの和が一番多いクラスタを探索する
   // double maxprob_of_cluster = cluster_prob_weight[0] * cluster_prob_num[0];
