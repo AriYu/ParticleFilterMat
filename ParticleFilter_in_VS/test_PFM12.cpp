@@ -26,14 +26,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 10
+#define NumOfIterate 5
 #define NumOfParticle 1000
 #define ESSth 45
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 50.0;          //! loop limit
+const double T = 200.0;          //! loop limit
 
 //----------------------------
 // Process Equation
