@@ -632,7 +632,7 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   //const double sigma = sqrt(ProcessNoiseCov_.at<double>(0,0));
   const double sigma = 1.0;
   const double clustering_threshold = (ProcessNoiseCov_.at<double>(0,0));
-  //const double clustering_threshold = 3.0;
+  //const double clustering_threshold = 1.0;
   std::vector<int> indices;
   std::vector<PStateMat> target_particles;
   std::vector<PStateMat> target_particles_pre;
@@ -721,24 +721,74 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   }
 
 
+  // 1時刻前の重みの和を計算する
+  // std::vector<double> fxx(num_of_cluster, 0); // f( x(k) | x(k-1) )
+  // double sum_fxx = 0.0;
+  // //PStateMat xhatm(last_state); // x^-(k)
+  // //cv::Mat rnd = cv::Mat::zeros(dimX_, 1, CV_PI);
+  // //processmodel(xhatm.state_, last_state.state_, 0, rnd);
+  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+  // 	for(int i = 0; i < (int)target_particles.size(); i++){
+  // 	  if(cluster_ind == indices[i]){
+  // 		fxx[cluster_ind] += exp(target_particles_pre[i].weight_);
+  // 	  }
+  // 	}
+  // 	sum_fxx += fxx[cluster_ind];
+  // }
+  // for(int i = 0; i < num_of_cluster; i++){
+  // 	fxx[i] = fxx[i] / sum_fxx;
+  // }
+
+  // 1時刻前の重みの和を計算する
+  std::vector<double> fxy(num_of_cluster, 0); // f( x(k) | y(k-1) )
+  double sum_fxy = 0.0;
+  for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	bool isFirst = true;
+  	for(int i = 0; i < (int)target_particles.size(); i++){
+  	  if(cluster_ind == indices[i]){
+		double tmp = target_particles_pre[i].weight_;
+		fxy[cluster_ind] = logsumexp(fxy[cluster_ind], tmp, isFirst);
+		isFirst = false;
+  		//fxy[cluster_ind] += exp(target_particles_pre[i].weight_);
+  	  }
+  	}
+  	//sum_fxy += fxy[cluster_ind];
+	sum_fxy = logsumexp(sum_fxy, fxy[cluster_ind], (cluster_ind == 0));
+  }
+  for(int i = 0; i < num_of_cluster; i++){
+  	fxy[i] = fxy[i] - sum_fxy;
+  }
+
   // 1時刻前の推定値からの遷移確率を計算する
   std::vector<double> fxx(num_of_cluster, 0); // f( x(k) | x(k-1) )
   double sum_fxx = 0.0;
-  //PStateMat xhatm(last_state); // x^-(k)
-  // double sum = 0; // 正規化に使う
-  // cv::Mat rnd = cv::Mat::zeros(dimX_, 1, CV_PI);
-  // processmodel(xhatm.state_, last_state.state_, 0, rnd);
+  PStateMat xhatm(last_state); // x^-(k)
+  cv::Mat rnd = cv::Mat::zeros(dimX_, 1, CV_PI);
+  processmodel(xhatm.state_, last_state.state_, 0, rnd);
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
+	bool isFirst = true;
 	for(int i = 0; i < (int)target_particles.size(); i++){
 	  if(cluster_ind == indices[i]){
-		fxx[cluster_ind] += exp(target_particles_pre[i].weight_);
+		double tmp = trans_likelihood(target_particles[i].state_,
+											 xhatm.state_,
+											 ProcessNoiseCov_,
+											 ProcessNoiseMean_);
+		fxx[cluster_ind] = logsumexp(fxx[cluster_ind], tmp, isFirst);
+		isFirst = false;
+		// fxx[cluster_ind] += trans_likelihood(target_particles[i].state_,
+		// 									 xhatm.state_,
+		// 									 ProcessNoiseCov_,
+		// 									 ProcessNoiseMean_);
 	  }
 	}
-	sum_fxx += fxx[cluster_ind];
+   	sum_fxx = logsumexp(sum_fxx, fxx[cluster_ind], (cluster_ind == 0));
+	//	sum_fxx += exp(fxx[cluster_ind]);
   }
   for(int i = 0; i < num_of_cluster; i++){
-  	fxx[i] = fxx[i] / sum_fxx;
+  	//fxx[i] = exp(fxx[i]) / sum_fxx;
+  	fxx[i] = fxx[i] - sum_fxx;
   }
+
   // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
   // 	std::cout << "+--------------------------------------------------------+" << std::endl;
   // 	std::cout << "cluster_prob_weight[" << cluster_ind << "]:" 
@@ -812,29 +862,33 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   // }
 
   // 1時刻前の重み+現時刻の重みが一番多いクラスタを探索する
-  // double maxprob_of_cluster = cluster_prob_weight[0]*fxx[0];
+  // double maxprob_of_cluster = cluster_prob_weight[0]+exp(fxx[0]);
   // int maxprob_cluster_ind = 0;
   // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
   // 	cout << "cluster prob[" << cluster_ind << "] = " 
-  // 		 << cluster_prob_weight[0]*fxx[cluster_ind] << endl;
-  // 	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]*fxx[cluster_ind]){
-  // 	  maxprob_of_cluster = cluster_prob_weight[cluster_ind]*fxx[cluster_ind];
+  // 		 << cluster_prob_weight[cluster_ind]+exp(fxx[cluster_ind]) << endl;
+  // 	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]+exp(fxx[cluster_ind])){
+  // 	  maxprob_of_cluster = cluster_prob_weight[cluster_ind]+exp(fxx[cluster_ind]);
   // 	  maxprob_cluster_ind = cluster_ind;
   // 	}
   // }
 
   // パーティクルの数+重み+1時刻前の重みが一番多いクラスタを探索する
-  double maxprob_of_cluster = fxx[0]*cluster_prob_weight[0]*cluster_prob_num[0];
+  double maxprob_of_cluster = exp(fxx[0])+cluster_prob_weight[0]+exp(fxy[0]);
   int maxprob_cluster_ind = 0;
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
   	cout << "cluster prob[" << cluster_ind << "] = " 
-  		 << fxx[cluster_ind]
-  	  *cluster_prob_weight[cluster_ind]
-  	  *cluster_prob_num[cluster_ind] << endl;
+  		 << exp(fxx[cluster_ind])
+  	  +cluster_prob_weight[cluster_ind]
+	  +exp(fxy[cluster_ind]) << endl;
   	if(maxprob_of_cluster < 
-  	   fxx[cluster_ind] * cluster_prob_weight[cluster_ind] * cluster_prob_num[cluster_ind]){
+  	   exp(fxx[cluster_ind]) 
+  	   + cluster_prob_weight[cluster_ind] + exp(fxy[cluster_ind])
+  	   ){
+  	  
   	  maxprob_of_cluster = 
-  		fxx[cluster_ind] * cluster_prob_weight[cluster_ind] * cluster_prob_num[cluster_ind];
+  		exp(fxx[cluster_ind]) 
+  		+ cluster_prob_weight[cluster_ind] + exp(fxy[cluster_ind]);
   	  maxprob_cluster_ind = cluster_ind;
   	}
   }

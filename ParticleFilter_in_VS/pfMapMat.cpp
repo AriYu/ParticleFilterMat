@@ -63,7 +63,7 @@ void pfMapMat::Update(
 	  // 	p_xx_vec[j] = log(0.1);
 	  // }
 	  // sum = logsumexp(sum, p_xx_vec[j], (j == 0));
-	}
+	 }
 	// for(int j = 0; j < particle_filter.samples_; j++){
 	//    p_xx_vec[j] = p_xx_vec[j] - sum;
 	// }
