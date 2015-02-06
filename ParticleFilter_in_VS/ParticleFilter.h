@@ -114,6 +114,11 @@ class ParticleFilterMat
   std::vector< PStateMat > predict_particles;
   std::vector< PStateMat > filtered_particles;
   std::vector< PStateMat > last_filtered_particles;
+
+
+  // For Viterbi Algorithm
+  std::vector<double> delta;
+  std::vector<double> last_delta;
 };
 
 class PFilter

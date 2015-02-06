@@ -9,8 +9,8 @@ using namespace std;
 EPViterbiMat::EPViterbiMat(ParticleFilterMat &particle_filter)
 	: last_particlefilter(particle_filter), is_inited_(false)
 {
-	this->delta.resize(particle_filter.samples_);
-	this->last_delta.resize(particle_filter.samples_);
+	// this->delta.resize(particle_filter.samples_);
+	// this->last_delta.resize(particle_filter.samples_);
 	this->g_yx_vec.resize(particle_filter.samples_);
 	this->f_xx_vec.resize(particle_filter.samples_);
 	this->last_g_yx_vec.resize(particle_filter.samples_);
@@ -77,8 +77,10 @@ void EPViterbiMat::Initialization(
   //=============================================
   // log(f(x)) + log(g(y1 | x1))
   for(int i = 0; i < particle_filter.samples_; i++){
-	delta[i] = f_xx_vec[i] + g_yx_vec[i];
-	last_delta[i] = delta[i];
+	// delta[i] = f_xx_vec[i] + g_yx_vec[i];
+	// last_delta[i] = delta[i];
+	particle_filter.delta[i] = f_xx_vec[i] + g_yx_vec[i];
+	particle_filter.last_delta[i] = particle_filter.delta[i];
 	last_g_yx_vec[i] = g_yx_vec[i];
 	last_particlefilter.predict_particles[i]
 	  = particle_filter.predict_particles[i];
@@ -88,11 +90,11 @@ void EPViterbiMat::Initialization(
 	epvgm_output << i << " " 
 				 << particle_filter.filtered_particles[i].state_.at<double>(0,0) << " " 
 				 << g_yx_vec[i] << " "
-				 << last_delta[i] << " "
+				 << particle_filter.last_delta[i] << " "
 				 << 0 << " " // max
 				 << 0 << " " // max fxx
 				 << 0 << " " // max lastdelta
-				 << delta[i] << endl;
+				 << particle_filter.delta[i] << endl;
 #endif // DEBUG
 
   }
@@ -168,7 +170,7 @@ void EPViterbiMat::Recursion(
 		  // }else{
 		  // 	f_xx_vec[j] = log(0.1);
 		  // }
-		  // sum = logsumexp(sum, f_xx_vec[j], (j==0));
+		  //sum = logsumexp(sum, f_xx_vec[j], (j==0));
 		}
 
 		// ===============================================
@@ -181,11 +183,15 @@ void EPViterbiMat::Recursion(
 		// ===============================================
 		// Search max(delta_k-1 + log(p(x_k(i) | x_k-1(j))))
 		for(int j = 0; j < particle_filter.samples_; j++){
-		  lastdelta_fxx[j] = last_delta[j] + f_xx_vec[j];
+		  //lastdelta_fxx[j] = last_delta[j] + f_xx_vec[j];
+		  lastdelta_fxx[j] = particle_filter.last_delta[j] + f_xx_vec[j];
+		  //lastdelta_fxx[j] = particle_filter.last_delta[j] + f_xx_vec[j] + g_yx_vec[i];
 		}
 		max[i] = *max_element( lastdelta_fxx.begin(), lastdelta_fxx.end() );
 
-		delta[i] = g_yx_vec[i] + max[i];
+		// delta[i] = g_yx_vec[i] + max[i];
+		particle_filter.delta[i] = g_yx_vec[i] + max[i];
+		//particle_filter.delta[i] = max[i];
 	  }
 
        
@@ -195,21 +201,20 @@ void EPViterbiMat::Recursion(
 		epvgm_output << i << " " // [1]
 					 << particle_filter.filtered_particles[i].state_.at<double>(0,0) << " " 
 					 << g_yx_vec[i] << " " //[3]
-					 << last_delta[i] << " " //[4]
+					 << particle_filter.last_delta[i] << " " //[4]
 					 << max[i] << " "//[5]
 					 << maxfxx[i] << " "//[6]
 					 << maxlastdelta[i] << " "//[7]
-					 << delta[i] << endl;//[8]
+					 << particle_filter.delta[i] << endl;//[8]
 #endif // DEBUG
 		last_g_yx_vec[i] = g_yx_vec[i];
-		last_delta[i] = delta[i];
+		//particle_filter.last_delta[i] = particle_filter.delta[i];
 		last_particlefilter.filtered_particles[i].weight_
 		  = particle_filter.filtered_particles[i].weight_;
 		last_particlefilter.predict_particles[i]
 		  = particle_filter.predict_particles[i];
 		last_particlefilter.filtered_particles[i]
 		  = particle_filter.filtered_particles[i];
-
 	  }
 
 #ifdef DEBUG
@@ -219,18 +224,18 @@ void EPViterbiMat::Recursion(
     }
 }
 
-cv::Mat EPViterbiMat::GetEstimation()
+cv::Mat EPViterbiMat::GetEstimation(ParticleFilterMat &particle_filter)
 {
     //=====================================================
     double max_ = 0;	
     for (int i = 0; i < last_particlefilter.samples_; i++){
     	if (i == 0){
-		  max_ = delta[0];
+		  max_ = particle_filter.delta[0];
 		  it_ = i;
     	}
     	else{
-            if (delta[i] > max_){
-			  max_ = delta[i];
+            if (particle_filter.delta[i] > max_){
+			  max_ = particle_filter.delta[i];
 			  it_ = i;
             }
     	}

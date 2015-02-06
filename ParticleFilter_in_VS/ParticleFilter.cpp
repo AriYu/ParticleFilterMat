@@ -203,7 +203,6 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 	assert(samples_ > 0);
 
 
-
 	this->predict_particles.reserve(samples_);
 	this->filtered_particles.reserve(samples_);
 	this->last_filtered_particles.reserve(samples_);
@@ -232,6 +231,9 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 		}
 	}
 
+	// For Viterbi Algorithm
+	this->delta.resize(samples_);
+	this->last_delta.resize(samples_);
 }
 
 void ParticleFilterMat::SetProcessNoise(cv::Mat Cov, cv::Mat Mean)
@@ -486,6 +488,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
                 predict_particles[i].state_ = filtered_particles[j].state_;
                 predict_particles[i].weight_ = log(mean);
 				last_filtered_particles[i] = filtered_particles[j];
+				last_delta[i] = delta[j]; // For Viterbi Algorithm.
                 i++;
             }
             else{
@@ -502,6 +505,7 @@ void ParticleFilterMat::Resampling(cv::Mat observed, double ESSth)
         for (int i = 0; i < samples_; i++){
             predict_particles[i] = filtered_particles[i];
 			last_filtered_particles[i] = filtered_particles[i];
+			last_delta[i] = delta[i]; // For Viterbi Algorithm.
         }
     }
 }
@@ -629,10 +633,10 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 																		  const cv::Mat &mean))
 {
   int num_of_dimension = dimX_;
-  //const double sigma = sqrt(ProcessNoiseCov_.at<double>(0,0));
-  const double sigma = 1.0;
-  //const double clustering_threshold = (ProcessNoiseCov_.at<double>(0,0));
-  const double clustering_threshold = 10.0;
+  const double sigma = sqrt(ProcessNoiseCov_.at<double>(0,0));
+  //const double sigma = 1.0;
+  const double clustering_threshold = (ProcessNoiseCov_.at<double>(0,0));
+  //const double clustering_threshold = 10.0;
   std::vector<int> indices;
   std::vector<PStateMat> target_particles;
   std::vector<PStateMat> target_particles_pre;
@@ -640,7 +644,7 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 
   // 尤度が一定値以上のパーティクルのみをクラスタリングの対象とする.
   for(int i = 0; i < samples_; i++){
-	if(exp(filtered_particles[i].weight_) > 0.00001){
+	if(exp(filtered_particles[i].weight_) > 0.00005){
 	  target_particles.push_back(filtered_particles[i]);
 	  //target_particles.push_back(predict_particles[i]);
 	  target_particles_pre.push_back(last_filtered_particles[i]);
@@ -688,7 +692,7 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   }
 
   // 各クラスタの重みの和とパーティクルの数を求める
-  double sum_of_weight = 0; // クラスタリングしたすべてのパーティクルの重みの和
+  double sum_of_weight = 0;   // クラスタリングしたすべてのパーティクルの重みの和
   double sum_of_particle = 0; // クラスタリングしたすべてのパーティクルの数
   std::vector<double> cluster_prob_weight(num_of_cluster, 0.0); // 各クラスタの重みの和
   std::vector<double> cluster_prob_num(num_of_cluster, 0.0); // 各クラスタのパーティクルの数
@@ -722,24 +726,6 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 
 
   // 1時刻前の重みの和を計算する
-  // std::vector<double> fxx(num_of_cluster, 0); // f( x(k) | x(k-1) )
-  // double sum_fxx = 0.0;
-  // //PStateMat xhatm(last_state); // x^-(k)
-  // //cv::Mat rnd = cv::Mat::zeros(dimX_, 1, CV_PI);
-  // //processmodel(xhatm.state_, last_state.state_, 0, rnd);
-  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-  // 	for(int i = 0; i < (int)target_particles.size(); i++){
-  // 	  if(cluster_ind == indices[i]){
-  // 		fxx[cluster_ind] += exp(target_particles_pre[i].weight_);
-  // 	  }
-  // 	}
-  // 	sum_fxx += fxx[cluster_ind];
-  // }
-  // for(int i = 0; i < num_of_cluster; i++){
-  // 	fxx[i] = fxx[i] / sum_fxx;
-  // }
-
-  // 1時刻前の重みの和を計算する
   std::vector<double> fxy(num_of_cluster, 0); // f( x(k) | y(k-1) )
   double sum_fxy = 0.0;
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
@@ -768,9 +754,9 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 	for(int i = 0; i < (int)target_particles.size(); i++){
 	  if(cluster_ind == indices[i]){
 		double tmp = trans_likelihood(target_particles[i].state_,
-											 xhatm.state_,
-											 ProcessNoiseCov_,
-											 ProcessNoiseMean_);
+									  xhatm.state_,
+									  ProcessNoiseCov_,
+									  ProcessNoiseMean_);
 		fxx[cluster_ind] = logsumexp(fxx[cluster_ind], tmp, isFirst);
 		isFirst = false;
 	  }
@@ -805,41 +791,18 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   	}
   }
 
-  // 遷移確率と現時刻の重みの和が一番高いクラスタを探す
+  //遷移確率と現時刻の重みの和が一番高いクラスタを探す
   // double maxprob_of_cluster = exp(fxx[0]) + cluster_prob_weight[0];
   // int maxprob_cluster_ind = 0;
   // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
   // 	cout << "cluster prob[" << cluster_ind << "] = " 
   // 		 << exp(fxx[cluster_ind]) + cluster_prob_weight[cluster_ind] << endl;
-  // 	if(maxprob_of_cluster < exp(fxx[cluster_ind]) + cluster_prob_weight[cluster_ind]){
+  // 	if(maxprob_of_cluster < (exp(fxx[cluster_ind]) + cluster_prob_weight[cluster_ind])){
   // 	  maxprob_of_cluster = exp(fxx[cluster_ind]) + cluster_prob_weight[cluster_ind];
   // 	  maxprob_cluster_ind = cluster_ind;
   // 	}
   // }
 
-  // 1時刻前の重みが一番高いクラスタを探す
-  // double maxprob_of_cluster = fxx[0];
-  // int maxprob_cluster_ind = 0;
-  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-  // 	cout << "cluster prob[" << cluster_ind << "] = " 
-  // 		 << fxx[cluster_ind] << endl;
-  // 	if(maxprob_of_cluster < fxx[cluster_ind]){
-  // 	  maxprob_of_cluster = fxx[cluster_ind];
-  // 	  maxprob_cluster_ind = cluster_ind;
-  // 	}
-  // }
-
-  // // パーティクルの数が一番多いクラスタを探索する
-  // double maxprob_of_cluster = cluster_prob_num[0];
-  // int maxprob_cluster_ind = 0;
-  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-  // 	cout << "cluster prob[" << cluster_ind << "] = " 
-  // 		 << cluster_prob_num[cluster_ind] << endl;
-  // 	if(maxprob_of_cluster < cluster_prob_num[cluster_ind]){
-  // 	  maxprob_of_cluster = cluster_prob_num[cluster_ind];
-  // 	  maxprob_cluster_ind = cluster_ind;
-  // 	}
-  // }
 
   // パーティクルの数+重みが一番多いクラスタを探索する
   // double maxprob_of_cluster = cluster_prob_weight[0]+cluster_prob_num[0];
@@ -853,17 +816,6 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   // 	}
   // }
 
-  // 1時刻前の重み+現時刻の重みが一番多いクラスタを探索する
-  // double maxprob_of_cluster = cluster_prob_weight[0]+exp(fxx[0]);
-  // int maxprob_cluster_ind = 0;
-  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-  // 	cout << "cluster prob[" << cluster_ind << "] = " 
-  // 		 << cluster_prob_weight[cluster_ind]+exp(fxx[cluster_ind]) << endl;
-  // 	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]+exp(fxx[cluster_ind])){
-  // 	  maxprob_of_cluster = cluster_prob_weight[cluster_ind]+exp(fxx[cluster_ind]);
-  // 	  maxprob_cluster_ind = cluster_ind;
-  // 	}
-  // }
 
   // パーティクルの数+重み+1時刻前の重みが一番多いクラスタを探索する
   // double maxprob_of_cluster =  exp(fxx[0])+
@@ -886,37 +838,8 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   // 	}
   // }
 
-  // パーティクルの数x重みの和が一番多いクラスタを探索する
-  // double maxprob_of_cluster = cluster_prob_weight[0] * cluster_prob_num[0];
-  // int maxprob_cluster_ind = 0;
-  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-  // 	cout << "cluster prob[" << cluster_ind << "] = " 
-  // 		 << cluster_prob_weight[cluster_ind] * cluster_prob_num[cluster_ind] << endl;
-  // 	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]*cluster_prob_num[cluster_ind]){
-  // 	  maxprob_of_cluster = cluster_prob_weight[cluster_ind]*cluster_prob_num[cluster_ind];
-  // 	  maxprob_cluster_ind = cluster_ind;
-  // 	}
-  // }
 
-
-  // パーティクル/母分散の数が一番大きいクラスタを選ぶ
-  // double maxprob_of_cluster = cluster_prob_weight[0]/(1+variances[0]);
-  // int maxprob_cluster_ind = 0;
-  // for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
-  // 	cout << "variances[" << cluster_ind << "] = "
-  // 		 << variances[cluster_ind] << endl;
-  // 	cout << "cluster prob num[" << cluster_ind << "] = "
-  // 		 << cluster_prob_weight[cluster_ind] << endl;	
-  // 	cout << "cluster prob[" << cluster_ind << "] = " 
-  // 		 << cluster_prob_weight[cluster_ind]/(1+variances[cluster_ind]) << endl;
-  // 	if(maxprob_of_cluster < cluster_prob_weight[cluster_ind]/(1+variances[cluster_ind])){
-  // 	  maxprob_of_cluster  = cluster_prob_weight[cluster_ind]/(1+variances[cluster_ind]);
-  // 	  maxprob_cluster_ind = cluster_ind;
-  // 	}
-  // }
-
-  est = mmse[maxprob_cluster_ind];
-  //est = mmse[minprob_cluster_ind];
+  est = mmse[maxprob_cluster_ind];  //est = mmse[minprob_cluster_ind];
   last_state.state_ = est;
   return num_of_cluster;
 }

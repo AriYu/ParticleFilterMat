@@ -61,6 +61,7 @@ add_executable(
   EPViterbiMAP.cpp
   EPViterbiMAPAlpha.cpp
   pfMapMat.cpp
+  unscented_kalman_filter.cpp
   RootMeanSquareError.cpp
   )
 target_link_libraries( test_PFM13 ${OpenCV_LIBS} )

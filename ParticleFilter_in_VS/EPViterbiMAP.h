@@ -23,13 +23,13 @@ public:
 		double(*trans_likelihood)(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &cov, const cv::Mat &mean),
 		const double &ctrl_input,
 		const cv::Mat &observed);
-	virtual cv::Mat GetEstimation();
+	virtual cv::Mat GetEstimation(ParticleFilterMat &particle_filter);
 
 protected:
 	ParticleFilterMat last_particlefilter;
 	bool is_inited_;
-	std::vector<double> delta;
-	std::vector<double> last_delta;
+	/* std::vector<double> delta; */
+	/* std::vector<double> last_delta; */
 	std::vector<double> g_yx_vec;
 	std::vector<double> f_xx_vec;
 	std::vector<double> last_g_yx_vec;

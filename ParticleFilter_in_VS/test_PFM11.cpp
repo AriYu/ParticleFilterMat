@@ -229,7 +229,7 @@ int main(void) {
             // ==============================
             Mat    predictionPF    = pfm.GetMMSE();
             double predict_x_pf    = predictionPF.at<double>(0, 0);
-            Mat    predictionEPVGM = epvgm.GetEstimation();
+            Mat    predictionEPVGM = epvgm.GetEstimation(pfm);
             double predict_x_epvgm = predictionEPVGM.at<double>(0, 0);
             Mat    predictionEPVGMAlpha = epvgm_alpha.GetEstimation();
             double predict_x_epvgm_alpha = predictionEPVGMAlpha.at<double>(0, 0);
