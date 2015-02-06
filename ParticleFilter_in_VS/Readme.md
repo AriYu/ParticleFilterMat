@@ -16,6 +16,9 @@ $ source plots.sh
 ## test_PFM12
 非線形、多峰性モデル
 
+## test_PFM13
+linear, multi sensor model.
+
 ## plots.sh
 以下のスクリプトを一気に実行するシェルスクリプト．
 
