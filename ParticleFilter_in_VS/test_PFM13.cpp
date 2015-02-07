@@ -47,12 +47,12 @@ const int observation_dimension = 5;
 //! rnd		: process noise
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
-    // x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
-	//   + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
-	//   +  8.0 * cos(1.2*k)
-	//   + rnd.at<double>(0, 0);
-   //x.at<double>(0,0) = xpre.at<double>(0,0) + 3.0 * cos(xpre.at<double>(0,0)/10) + rnd.at<double>(0,0);
-x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
+  // x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
+  //   + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
+  //   +  8.0 * cos(1.2*k)
+  //   + rnd.at<double>(0, 0);
+  //x.at<double>(0,0) = xpre.at<double>(0,0) + 3.0 * cos(xpre.at<double>(0,0)/10) + rnd.at<double>(0,0);
+  x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
 }
 
 
@@ -62,8 +62,8 @@ x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
 //! x : èÛë‘ÉxÉNÉgÉã
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
-    // z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
-    //     + rnd.at<double>(0, 0);
+  // z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
+  //     + rnd.at<double>(0, 0);
   // z.at<double>(0, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(0,0);
   // z.at<double>(1, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(1,0);
   for(int i = 0; i < observation_dimension; i++){
@@ -396,8 +396,11 @@ int main(void) {
 			 << predict_x_epvgm << " "              // [4] predicted state by EPVGM
 			 << predict_x_pfmap << " "              // [5] predicted state by PFMAP
 			 << predict_x_ml << " "                 // [6] predicted state by PF(ML)
-			 << predict_x_ms << " "                   // [7] predicted state by PF(MS)
-			 << measurement.at<double>(4, 0) << endl;// [8] second sensor
+			 << predict_x_ms << " "                 // [7] predicted state by PF(MS)
+			 << measurement.at<double>(1, 0) << " " // [8] second sensor
+			 << measurement.at<double>(2, 0) << " " // [9] third sensor
+			 << measurement.at<double>(3, 0) << " " // [10] forth sensor
+			 << measurement.at<double>(4, 0) << endl; // [11] fifth sensor
 	  output_diff << state.at<double>(0, 0) - predict_x_pf << " "
 				  << state.at<double>(0, 0) - predict_x_ms << endl;
 	  last_state = state;

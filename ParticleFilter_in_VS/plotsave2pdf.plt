@@ -7,7 +7,7 @@ cd "./graph/estimation"
 set terminal pdf
 
 set output "true-obs.pdf"
-plot "../../result1.dat" u 1 w lines t "true(x1)", "../../result1.dat" u 2 w lines t "first sensor(x1)","../../result1.dat" u 8 w lines t "second sensor(x1)"
+plot "../../result1.dat" u 1 w lines t "true(x1)", "../../result1.dat" u 2 w lines t "first sensor(x1)","../../result1.dat" u 8 w lines t "second sensor(x1)","../../result1.dat" u 9 w lines t "third sensor(x1)","../../result1.dat" u 10 w lines t "forth sensor(x1)","../../result1.dat" u 11 w lines t "fifth sensor(x1)"
 
 #推定値、観測値とMMSEをプロット
 set output "mmse.pdf"
