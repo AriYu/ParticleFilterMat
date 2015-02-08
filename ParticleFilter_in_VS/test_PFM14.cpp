@@ -129,9 +129,9 @@ int main(void) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov        = (cv::Mat_<double>(state_dimension, 1) << 1.0); // random walk.
+  cv::Mat ProcessCov        = (cv::Mat_<double>(state_dimension, 1) << 1.0, 1.0); //random walk.
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
-  cv::Mat ProcessMean       = (cv::Mat_<double>(state_dimension, 1) << 0.0);
+  cv::Mat ProcessMean       = (cv::Mat_<double>(state_dimension, 1) << 0.0, 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
     
   // ==============================
@@ -147,9 +147,9 @@ int main(void) {
   // ==============================
   // Set Initial Particle Noise
   // ==============================
-  cv::Mat initCov        = (cv::Mat_<double>(state_dimension, 1) << 5.0);
+  cv::Mat initCov        = (cv::Mat_<double>(state_dimension, 1) << 5.0, 5.0);
   std::cout << "initCov  = " << initCov << std::endl << std::endl;
-  cv::Mat initMean       = (cv::Mat_<double>(state_dimension, 1) << 0.0);
+  cv::Mat initMean       = (cv::Mat_<double>(state_dimension, 1) << 0.0, 0.0);
   std::cout << "initMean = " << initMean << std::endl << std::endl;
 
   std::cout << "Particle filter mat initialized!" << endl;
@@ -399,17 +399,24 @@ int main(void) {
 	  // ==============================
 	  // Save Estimated State
 	  // ==============================
-	  output << state.at<double>(0, 0) << " "       // [1] true state
+	  output << state.at<double>(0, 0) << " "       // [1] true state (x)
 			 << measurement.at<double>(0, 0) << " " // [2] first sensor
-			 << predict_x_pf << " "                 // [3] predicted state by PF(MMSE)
-			 << predict_x_epvgm << " "              // [4] predicted state by EPVGM
-			 << predict_x_pfmap << " "              // [5] predicted state by PFMAP
-			 << predict_x_ml << " "                 // [6] predicted state by PF(ML)
-			 << predict_x_ms << " "                 // [7] predicted state by PF(MS)
+			 << predict_x_pf << " "                 // [3] Est PF(MMSE)  (x)
+			 << predict_x_epvgm << " "              // [4] Est PF(EP-VGM) (x)
+			 << predict_x_pfmap << " "              // [5] Est PF(pf-MAP) (x)
+			 << predict_x_ml << " "                 // [6] Est PF(Max weight) (x)
+			 << predict_x_ms << " "                 // [7] Est PF(MS) (x)
 			 << measurement.at<double>(1, 0) << " " // [8] second sensor
 			 << measurement.at<double>(2, 0) << " " // [9] third sensor
 			 << measurement.at<double>(3, 0) << " " // [10] forth sensor
-			 << measurement.at<double>(4, 0) << endl; // [11] fifth sensor
+			 << measurement.at<double>(4, 0) << " " // [11] fifth sensor
+			 << state.at<double>(1,0) << " "        // [12] true state (v)
+			 << predictionPF.at<double>(0, 0)       // [13] Est PF(MMSE)  (v)
+			 << predictionEPVGM.at<double>(0, 0)    // [14] Est PF(EP-VGM) (v)
+			 << predictionPFMAP.at<double>(0, 0)    // [15] Est PF(pf-MAP) (v)
+			 << predictionML.at<double>(0, 0)       // [16] Est PF(Max weight) (v)
+			 << predictionMeanshiftEst.at<double>(0,0) // [17] Est PF(MS) (v)
+			 << endl; 
 	  output_diff << state.at<double>(0, 0) - predict_x_pf << " "
 				  << state.at<double>(0, 0) - predict_x_ms << endl;
 	  last_state = state;
