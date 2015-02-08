@@ -1,8 +1,9 @@
 ///////////////////////////////////////////////
 // This Program is test for ParticleFilterMat.
-// linear, multi sensor model
-// - x(k) = x(k-1) + v(k)
-// - y(k) = x(k) + w(k)
+// x(k) = [ x(k), v(k) ]
+// - x(k) = [1 ƒ¢] x(k-1) + [ƒÌ1(k)]
+//          [0 1]          [ƒÌ2(k)]
+// - y(k) = [1 0] x(k) + ƒÄ(k)
 ///////////////////////////////////////////////
 
 #include <iostream>
@@ -33,9 +34,9 @@ using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 200.0;          //! loop limit
+const double T = 100.0;          //! loop limit
 
-const int state_dimension = 1;
+const int state_dimension = 2;
 const int observation_dimension = 5;
 
 
@@ -52,7 +53,8 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
   //   +  8.0 * cos(1.2*k)
   //   + rnd.at<double>(0, 0);
   //x.at<double>(0,0) = xpre.at<double>(0,0) + 3.0 * cos(xpre.at<double>(0,0)/10) + rnd.at<double>(0,0);
-  x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
+  x.at<double>(0, 0) = xpre.at<double>(0, 0) + xpre.at<double>(1, 0) + rnd.at<double>(0, 0);
+  x.at<double>(1, 0) = xpre.at<double>(1, 0) + rnd.at<double>(1, 0);
 }
 
 
@@ -123,9 +125,9 @@ int main(void) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 1.0); // random walk.
+  cv::Mat ProcessCov        = (cv::Mat_<double>(state_dimension, 1) << 1.0); // random walk.
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
-  cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
+  cv::Mat ProcessMean       = (cv::Mat_<double>(state_dimension, 1) << 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
     
   // ==============================
@@ -141,9 +143,9 @@ int main(void) {
   // ==============================
   // Set Initial Particle Noise
   // ==============================
-  cv::Mat initCov        = (cv::Mat_<double>(1, 1) << 5.0);
+  cv::Mat initCov        = (cv::Mat_<double>(state_dimension, 1) << 5.0);
   std::cout << "initCov  = " << initCov << std::endl << std::endl;
-  cv::Mat initMean       = (cv::Mat_<double>(1, 1) << 0.0);
+  cv::Mat initMean       = (cv::Mat_<double>(state_dimension, 1) << 0.0);
   std::cout << "initMean = " << initMean << std::endl << std::endl;
 
   std::cout << "Particle filter mat initialized!" << endl;
@@ -230,8 +232,10 @@ int main(void) {
 	//cv::RNG rng((unsigned)time(NULL));            // random generater
 	static random_device rdev;
     static mt19937 engine(rdev());
-	normal_distribution<> processNoiseGen(ProcessMean.at<double>(0, 0)
+	normal_distribution<> processNoiseGen1(ProcessMean.at<double>(0, 0)
 										  , sqrt(ProcessCov.at<double>(0, 0)));
+	normal_distribution<> processNoiseGen2(ProcessMean.at<double>(1, 0)
+										  , sqrt(ProcessCov.at<double>(1, 0)));
 
 	normal_distribution<> obsNoiseGen1(ObsMean.at<double>(0, 0)
 									  , sqrt(ObsCov.at<double>(0, 0)));
@@ -255,7 +259,8 @@ int main(void) {
 	  // ==============================
 	  // Generate Actual Value
 	  // =============================
-	  processNoise.at<double>(0,0) = processNoiseGen(engine);
+	  processNoise.at<double>(0, 0) = processNoiseGen1(engine);
+	  processNoise.at<double>(1, 0) = processNoiseGen2(engine);
 	  process(state, last_state, input, processNoise);
 
 	  // ==============================
