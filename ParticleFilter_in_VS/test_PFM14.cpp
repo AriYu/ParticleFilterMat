@@ -106,9 +106,13 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 //! mena : •½‹Ï
 double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &cov, const cv::Mat &mean)
 {
-    double e = x.at<double>(0,0) - xhat.at<double>(0,0);
-    double tmp = -(e*e) / (2.0*cov.at<double>(0, 0));
-    return tmp;
+  static double e1, e2, tmp1, tmp2, sum = 0.0;
+  e1 = x.at<double>(0, 0) - xhat.at<double>(0, 0);
+  e2 = x.at<double>(1, 0) - xhat.at<double>(1, 0);
+  tmp1 = -(e1*e1) / (2.0*cov.at<double>(0, 0));
+  tmp2 = -(e2*e2) / (2.0*cov.at<double>(1, 0));
+  sum = exp(tmp1) + exp(tmp2);
+  return log(sum);
 }
 
 

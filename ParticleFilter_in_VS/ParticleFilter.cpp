@@ -713,10 +713,13 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 	  {
 		clusters[i][j].weight_ 
 		  = exp(clusters[i][j].weight_) / cluster_prob_weight[i];
-		mmse[i].at<double>(0,0) += clusters[i][j].state_.at<double>(0,0)
-		  *clusters[i][j].weight_;
+		for (int l = 0; l < dimX_; l++){
+		  mmse[i].at<double>(l,0) += clusters[i][l].state_.at<double>(l,0)
+			*clusters[i][j].weight_;
+		}
 	  }
   }
+
 
   // 各クラスタのパーティクルの数と重みを正規化する．
   for(int cluster_ind = 0; cluster_ind < num_of_cluster; cluster_ind++){
@@ -837,7 +840,6 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   // 	  maxprob_cluster_ind = cluster_ind;
   // 	}
   // }
-
 
   est = mmse[maxprob_cluster_ind];  //est = mmse[minprob_cluster_ind];
   last_state.state_ = est;
