@@ -28,13 +28,13 @@
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
-#define NumOfParticle 200
-#define ESSth 30
+#define NumOfParticle 1000
+#define ESSth 10
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 100.0;          //! loop limit
+const double T = 500.0;          //! loop limit
 
 const int state_dimension = 2;
 const int observation_dimension = 5;
@@ -53,7 +53,7 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
   //   +  8.0 * cos(1.2*k)
   //   + rnd.at<double>(0, 0);
   //x.at<double>(0,0) = xpre.at<double>(0,0) + 3.0 * cos(xpre.at<double>(0,0)/10) + rnd.at<double>(0,0);
-  x.at<double>(0, 0) = xpre.at<double>(0, 0) + xpre.at<double>(1, 0) + rnd.at<double>(0, 0);
+  x.at<double>(0, 0) = xpre.at<double>(0, 0) + 0.01*xpre.at<double>(1, 0) + rnd.at<double>(0, 0);
   x.at<double>(1, 0) = xpre.at<double>(1, 0) + rnd.at<double>(1, 0);
 }
 
@@ -129,7 +129,7 @@ int main(void) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov        = (cv::Mat_<double>(state_dimension, 1) << 1.0, 1.0); //random walk.
+  cv::Mat ProcessCov        = (cv::Mat_<double>(state_dimension, 1) << 0.05, 0.05);
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   cv::Mat ProcessMean       = (cv::Mat_<double>(state_dimension, 1) << 0.0, 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
@@ -138,16 +138,16 @@ int main(void) {
   // Set Observation Noise
   // ==============================
   cv::Mat ObsCov        = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 1.0, 1.0, 1.0, 1.0, 1.0); // Two sensor model.
+						   << 0.05, 0.05, 0.05, 0.05, 0.05); // fifth sensor model.
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 0.0, 0.0, 0.0, 0.0, 0.0); // Two sensor model.
+						   << 0.0, 0.0, 0.0, 0.0, 0.0); // fifth sensor model.
   std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
 
   // ==============================
   // Set Initial Particle Noise
   // ==============================
-  cv::Mat initCov        = (cv::Mat_<double>(state_dimension, 1) << 5.0, 5.0);
+  cv::Mat initCov        = (cv::Mat_<double>(state_dimension, 1) << 3.0, 3.0);
   std::cout << "initCov  = " << initCov << std::endl << std::endl;
   cv::Mat initMean       = (cv::Mat_<double>(state_dimension, 1) << 0.0, 0.0);
   std::cout << "initMean = " << initMean << std::endl << std::endl;
@@ -250,7 +250,7 @@ int main(void) {
 	normal_distribution<> obsNoiseGen4(ObsMean.at<double>(3, 0)
 									  , sqrt(ObsCov.at<double>(3, 0)));
 	normal_distribution<> obsNoiseGen5(ObsMean.at<double>(4, 0)
-									  , sqrt(ObsCov.at<double>(4, 0)));
+									   , sqrt(ObsCov.at<double>(4, 0)));
 	
 
 	double input = 0.0;
@@ -277,9 +277,9 @@ int main(void) {
 	  sensors[2] = obsNoiseGen1(engine)
 		+ ObsMean.at<double>(3, 0);
 	  sensors[3] = obsNoiseGen2(engine)
-		+ ObsMean.at<double>(4, 0) + 5.5;
+		+ ObsMean.at<double>(4, 0) + 1.0*sin(0.1*k);
 	  sensors[4] = obsNoiseGen1(engine)
-		+ ObsMean.at<double>(5, 0) + 5.5;
+		+ ObsMean.at<double>(5, 0) + 1.0*cos(0.2*k);
 
 	  for(int i = 0; i < observation_dimension; i++){
 		measurementNoise.at<double>(i, 0) = sensors[i];
@@ -336,8 +336,9 @@ int main(void) {
 	  timer.start();
 	  std::vector< std::vector<PStateMat> > clusters;
 	  // int num_of_cluster = pfm.GetClusteringEstimation(clusters, predictionMeanshiftEst);
-	  int num_of_cluster = pfm.GetClusteringEstimation2(clusters, predictionMeanshiftEst,
-														process, Trans_likelihood);
+	  // int num_of_cluster = pfm.GetClusteringEstimation2(clusters, predictionMeanshiftEst,
+	  // 													process, Trans_likelihood);
+	  int num_of_cluster = 0; 
 	  timer.stop();
 	  std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
 	  
@@ -359,7 +360,7 @@ int main(void) {
 	  double predict_x_ml    = predictionML.at<double>(0, 0);
 	  Mat    predictionPFMAP = pfmap.GetEstimation();
 	  double predict_x_pfmap = predictionPFMAP.at<double>(0, 0);
-	  double predict_x_ms    = predictionMeanshiftEst.at<double>(0,0);
+	  double predict_x_ms    = predict_x_pf;//predictionMeanshiftEst.at<double>(0,0);
 	
 	  //=======================================
 	  // Resampling step(Particle Filter Step)
@@ -411,11 +412,11 @@ int main(void) {
 			 << measurement.at<double>(3, 0) << " " // [10] forth sensor
 			 << measurement.at<double>(4, 0) << " " // [11] fifth sensor
 			 << state.at<double>(1,0) << " "        // [12] true state (v)
-			 << predictionPF.at<double>(0, 0)       // [13] Est PF(MMSE)  (v)
-			 << predictionEPVGM.at<double>(0, 0)    // [14] Est PF(EP-VGM) (v)
-			 << predictionPFMAP.at<double>(0, 0)    // [15] Est PF(pf-MAP) (v)
-			 << predictionML.at<double>(0, 0)       // [16] Est PF(Max weight) (v)
-			 << predictionMeanshiftEst.at<double>(0,0) // [17] Est PF(MS) (v)
+			 << predictionPF.at<double>(1, 0) << " "    // [13] Est PF(MMSE)  (v)
+			 << predictionEPVGM.at<double>(1, 0) << " " // [14] Est PF(EP-VGM) (v)
+			 << predictionPFMAP.at<double>(1, 0) << " " // [15] Est PF(pf-MAP) (v)
+			 << predictionML.at<double>(1, 0) << " "    // [16] Est PF(Max weight) (v)
+			 << predictionMeanshiftEst.at<double>(1,0)  // [17] Est PF(MS) (v)
 			 << endl; 
 	  output_diff << state.at<double>(0, 0) - predict_x_pf << " "
 				  << state.at<double>(0, 0) - predict_x_ms << endl;

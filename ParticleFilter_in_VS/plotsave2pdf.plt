@@ -39,7 +39,7 @@ plot "../../result2.dat" u 2 w lines t "PFMS(x1)","../../result2.dat" u 1 w line
 
 #速度の推定値をプロット（test_PFM14）
 set output "mmse_velocity.pdf"
-plot "../../result1.dat" u 12 w lines t "true(v1)","../../result1.dat" u 13 w lines t "PF[MMSE](v1)","../../result1.dat" u 14 w lines t "PF[EP-VGM](v1)","../../result1.dat" u 15 w lines t "PF[pf-MAP](v1)"
+plot "../../result1.dat" u 12 w lines t "true(v1)","../../result1.dat" u 13 w lines t "PF[MMSE](v1)", "../../result1.dat" u 14 w lines t "PF[EP-VGM](v1)", "../../result1.dat" u 15 w lines t "PF[pf-MAP](v1)"
 
 
 reset
