@@ -70,9 +70,9 @@ void pfMapMat::Update(
 
 	double log_weight = 0;
 	for (int j = 0; j < particle_filter.samples_; j++){
-	  // log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
+	  log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
 	  // log_weight = (p_xx_vec[j] + particle_filter.predict_particles[j].weight_);
-	  log_weight = (p_xx_vec[j] + particle_filter.last_filtered_particles[j].weight_);
+	  //log_weight = (p_xx_vec[j] + particle_filter.last_filtered_particles[j].weight_);
 	  map[i] += exp(log_weight);
 	}
 	map[i] = exp(p_yx_vec[i]) * map[i];

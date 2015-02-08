@@ -37,7 +37,7 @@ double       k = 0.0;		//! loop count
 const double T = 500.0;          //! loop limit
 
 const int state_dimension = 2;
-const int observation_dimension = 5;
+const int observation_dimension = 3;
 
 
 //----------------------------
@@ -89,11 +89,10 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 	for(int i = 0; i< observation_dimension; i++){
 	  errors[i] = z.at<double>(i, 0) - zhat.at<double>(i, 0) - mean.at<double>(i, 0);
 	  tmps[i] = -(errors[i]*errors[i]) / (2.0 * cov.at<double>(i, 0));
-	  //sum = logsumexp(sum, tmps[i], (i == 0));
-	  sum += exp(tmps[i]);
+	  //sum += tmps[i]; // ñﬁìxÇä|ÇØéZ
+	  sum += exp(tmps[i]); //ñﬁìxÇë´ÇµéZ
 	}
-	sum = log(sum);
-	//sum = log(exp(tmp1) + exp(tmp2));
+	sum = log(sum); // ñﬁìxÇë´ÇµéZÇ∑ÇÈÇ∆Ç´ÇÕÇ±Ç±Ç‡Ç¢ÇÈÅD
 	
     return sum;
 }
@@ -138,10 +137,12 @@ int main(void) {
   // Set Observation Noise
   // ==============================
   cv::Mat ObsCov        = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 0.05, 0.05, 0.05, 0.05, 0.05); // fifth sensor model.
+						   << 0.05, 0.05, 0.05); // two sensor model.
+						   //<< 0.05, 0.05, 0.05, 0.05, 0.05); // fifth sensor model.
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 0.0, 0.0, 0.0, 0.0, 0.0); // fifth sensor model.
+						   << 0.0, 0.0, 0.0); // two sensor model.
+                           //<< 0.0, 0.0, 0.0, 0.0, 0.0); // fifth sensor model.
   std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
 
   // ==============================
@@ -246,11 +247,11 @@ int main(void) {
 	normal_distribution<> obsNoiseGen2(ObsMean.at<double>(1, 0)
 									  , sqrt(ObsCov.at<double>(1, 0)));
 	normal_distribution<> obsNoiseGen3(ObsMean.at<double>(2, 0)
-									  , sqrt(ObsCov.at<double>(2, 0)));
-	normal_distribution<> obsNoiseGen4(ObsMean.at<double>(3, 0)
-									  , sqrt(ObsCov.at<double>(3, 0)));
-	normal_distribution<> obsNoiseGen5(ObsMean.at<double>(4, 0)
-									   , sqrt(ObsCov.at<double>(4, 0)));
+	 								  , sqrt(ObsCov.at<double>(2, 0)));
+	// normal_distribution<> obsNoiseGen4(ObsMean.at<double>(3, 0)
+	// 								  , sqrt(ObsCov.at<double>(3, 0)));
+	// normal_distribution<> obsNoiseGen5(ObsMean.at<double>(4, 0)
+	// 								   , sqrt(ObsCov.at<double>(4, 0)));
 	
 
 	double input = 0.0;
@@ -273,13 +274,13 @@ int main(void) {
 	  sensors[0] = obsNoiseGen1(engine)
 		+ ObsMean.at<double>(0, 0);
 	  sensors[1] = obsNoiseGen2(engine)
-		+ ObsMean.at<double>(1, 0);
+		+ ObsMean.at<double>(1, 0) +1.0;
 	  sensors[2] = obsNoiseGen1(engine)
-		+ ObsMean.at<double>(3, 0);
-	  sensors[3] = obsNoiseGen2(engine)
-		+ ObsMean.at<double>(4, 0) + 1.0*sin(0.1*k);
-	  sensors[4] = obsNoiseGen1(engine)
-		+ ObsMean.at<double>(5, 0) + 1.0*cos(0.2*k);
+	  	+ ObsMean.at<double>(3, 0);
+	  // sensors[3] = obsNoiseGen2(engine)
+	  // 	+ ObsMean.at<double>(4, 0) + 1.0*sin(0.4*k);
+	  // sensors[4] = obsNoiseGen1(engine)
+	  // 	+ ObsMean.at<double>(5, 0) + 1.0*cos(0.5*k);
 
 	  for(int i = 0; i < observation_dimension; i++){
 		measurementNoise.at<double>(i, 0) = sensors[i];
@@ -389,8 +390,8 @@ int main(void) {
 	  // ==============================
 	  // for RMSE
 	  // ==============================
-	  mmse_rmse.storeData(state.at<double>(0, 0), predict_x_pf);
-	  epvgm_rmse.storeData(state.at<double>(0, 0), predict_x_epvgm);
+	  mmse_rmse.storeData(state.at<double>(0, 0), predictionPF.at<double>(0, 0));
+	  epvgm_rmse.storeData(state.at<double>(0, 0), predictionEPVGM.at<double>(0, 0));
 	  ml_rmse.storeData(state.at<double>(0, 0), predict_x_ml);
 	  pfmap_rmse.storeData(state.at<double>(0, 0), predict_x_pfmap);
 	  ms_rmse.storeData(state.at<double>(0,0), predict_x_ms);
@@ -409,8 +410,8 @@ int main(void) {
 			 << predict_x_ms << " "                 // [7] Est PF(MS) (x)
 			 << measurement.at<double>(1, 0) << " " // [8] second sensor
 			 << measurement.at<double>(2, 0) << " " // [9] third sensor
-			 << measurement.at<double>(3, 0) << " " // [10] forth sensor
-			 << measurement.at<double>(4, 0) << " " // [11] fifth sensor
+			 << 0/*measurement.at<double>(3, 0)*/ << " " // [10] forth sensor
+			 << 0/*measurement.at<double>(4, 0)*/ << " " // [11] fifth sensor
 			 << state.at<double>(1,0) << " "        // [12] true state (v)
 			 << predictionPF.at<double>(1, 0) << " "    // [13] Est PF(MMSE)  (v)
 			 << predictionEPVGM.at<double>(1, 0) << " " // [14] Est PF(EP-VGM) (v)
