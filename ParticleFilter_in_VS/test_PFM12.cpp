@@ -27,13 +27,13 @@
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
-#define NumOfParticle 1000
+#define NumOfParticle 500
 #define ESSth 45
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 50.0;          //! loop limit
+const double T = 100.0;          //! loop limit
 
 //----------------------------
 // Process Equation
@@ -48,6 +48,8 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 	  +  8.0 * cos(1.2*k)
 	  + rnd.at<double>(0, 0);
 	//x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
+  // x.at<double>(0, 0) =  xpre.at<double>(0,0) + 3.0*cos(xpre.at<double>(0,0)/10.0) + rnd.at<double>(0, 0);
+  //x.at<double>(0, 0) =  xpre.at<double>(0,0) + sin(xpre.at<double>(0,0)/2.0) + cos(xpre.at<double>(0,0)) + rnd.at<double>(0, 0);
 }
 
 
@@ -60,6 +62,8 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
     z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
         + rnd.at<double>(0, 0);
  // z.at<double>(0, 0) = x.at<double>(0, 0) + rnd.at<double>(0,0);
+  // z.at<double>(0, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(0,0);
+	// z.at<double>(0, 0) = pow(x.at<double>(0, 0) * x.at<double>(0, 0),4.0) + rnd.at<double>(0,0);
 }
 
 //-----------------------------------------------------
@@ -100,7 +104,7 @@ int main(void) {
   // ==============================
   // Set Process Noise
   // ==============================
-   cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 10); // Non-Linear
+   cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 1); // Non-Linear
   //cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 0.64); // Random walk
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
@@ -109,7 +113,7 @@ int main(void) {
   // ==============================
   // Set Observation Noise
   // ==============================
-  cv::Mat ObsCov        = (cv::Mat_<double>(1, 1) << 1.0); // Non-Linear
+  cv::Mat ObsCov        = (cv::Mat_<double>(1, 1) << 10.0); // Non-Linear
   //cv::Mat ObsCov        = (cv::Mat_<double>(1, 1) << 5); // Random walk
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(1, 1) << 0.0);
