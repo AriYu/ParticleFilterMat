@@ -714,7 +714,7 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
 		clusters[i][j].weight_ 
 		  = exp(clusters[i][j].weight_) / cluster_prob_weight[i];
 		for (int l = 0; l < dimX_; l++){
-		  mmse[i].at<double>(l,0) += clusters[i][l].state_.at<double>(l,0)
+		  mmse[i].at<double>(l,0) += clusters[i][j].state_.at<double>(l,0)
 			*clusters[i][j].weight_;
 		}
 	  }
