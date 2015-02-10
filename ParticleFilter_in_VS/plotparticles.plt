@@ -8,11 +8,18 @@
 reset
 cd "./graph/particles"
 set terminal pdf
+# do for[j=0:99]{
+# 	set output sprintf("particles-%d.pdf",j)
+# 	plot "../../result_particle.dat" ind j u 1:2 smooth unique w linespoints pt 7 ps 1 t sprintf("particles%d",j)
+# 	set output
+# }
 do for[j=0:99]{
 	set output sprintf("particles-%d.pdf",j)
-	plot "../../result_particle.dat" ind j u 1:2 smooth unique w linespoints pt 7 ps 1 t sprintf("particles%d",j)
+	plot "../../result_particle.dat" ind j u 1:2 pt 7 ps 0.5 t sprintf("particles%d",j)
 	set output
 }
+
+
 
 # set dgrid3d 30, 30
 # set hidden3d

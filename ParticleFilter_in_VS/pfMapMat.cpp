@@ -35,8 +35,10 @@ void pfMapMat::Update(
 	p_yx_vec[i] = obs_likelihood(observed, obshat, 
 								 particle_filter.ObsNoiseCov_, 
 								 particle_filter.ObsNoiseMean_);
-	sum = logsumexp(sum, p_yx_vec[i], (i==0));
+	sum = logsumexp(sum, p_yx_vec[i], (i==0)); // p(y(k) | x(k))の正規化に必要
   }
+  //===========================
+  // p(y(k) | x(k)) の正規化
   for(int i = 0; i < particle_filter.samples_; i++){
   	p_yx_vec[i] = p_yx_vec[i] - sum;
   }
@@ -47,8 +49,9 @@ void pfMapMat::Update(
 	map[i] = 0.0;
 	sum = 0.0;
 	for(int j = 0; j < particle_filter.samples_; j++){
-	  processmodel(est_state, particle_filter.predict_particles[j].state_, 
-				   ctrl_input, est_rnd_num);
+	  //	  processmodel(est_state, particle_filter.predict_particles[j].state_, 
+	  //			   ctrl_input, est_rnd_num);
+	  est_state = particle_filter.predict_particles[i].state_;
 	  // processmodel(est_state, last_particlefilter.filtered_particles[j].state_, 
 	  // 			   ctrl_input, est_rnd_num);
 
@@ -57,21 +60,18 @@ void pfMapMat::Update(
 	  								 particle_filter.ProcessNoiseCov_,
 	  								 particle_filter.ProcessNoiseMean_);
 
-	  // if(i == j){
-	  // 	p_xx_vec[j] = log(1.0);
-	  // }else{
-	  // 	p_xx_vec[j] = log(0.1);
-	  // }
-	  // sum = logsumexp(sum, p_xx_vec[j], (j == 0));
-	 }
+	  // sum = logsumexp(sum, p_xx_vec[j], (j == 0)); // p( x(k) | x(k-1) )の正規化に必要
+	}
+	//=============================-
+	// p( x(k) | x(k-1) )の正規化
 	// for(int j = 0; j < particle_filter.samples_; j++){
 	//    p_xx_vec[j] = p_xx_vec[j] - sum;
 	// }
 
 	double log_weight = 0;
 	for (int j = 0; j < particle_filter.samples_; j++){
-	  log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
-	  // log_weight = (p_xx_vec[j] + particle_filter.predict_particles[j].weight_);
+	  //log_weight = (p_xx_vec[j] + last_particlefilter.filtered_particles[j].weight_ );
+	  log_weight = (p_xx_vec[j] + particle_filter.predict_particles[j].weight_);
 	  //log_weight = (p_xx_vec[j] + particle_filter.last_filtered_particles[j].weight_);
 	  map[i] += exp(log_weight);
 	}

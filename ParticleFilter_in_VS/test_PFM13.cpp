@@ -27,7 +27,7 @@
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
-#define NumOfParticle 200
+#define NumOfParticle 1000
 #define ESSth 30
 using namespace std;
 using namespace cv;
@@ -36,7 +36,7 @@ double       k = 0.0;		//! loop count
 const double T = 200.0;          //! loop limit
 
 const int state_dimension = 1;
-const int observation_dimension = 5;
+const int observation_dimension = 3;
 
 
 //----------------------------
@@ -105,7 +105,7 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &cov, const cv::Mat &mean)
 {
     double e = x.at<double>(0,0) - xhat.at<double>(0,0);
-    double tmp = -(e*e) / (2.0*cov.at<double>(0, 0));
+    double tmp = -(e*e) / (2.0*cov.at<double>(0, 0)) - log(2.0*CV_PI*cov.at<double>(0, 0));
     return tmp;
 }
 
@@ -132,10 +132,10 @@ int main(void) {
   // Set Observation Noise
   // ==============================
   cv::Mat ObsCov        = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 1.0, 1.0, 1.0, 1.0, 1.0); // Two sensor model.
+						   << 1.0, 1.0, 1.0); // three sensor model.
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 0.0, 0.0, 0.0, 0.0, 0.0); // Two sensor model.
+						   << 0.0, 0.0, 0.0); // Five sensor model.
   std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
 
   // ==============================
@@ -239,10 +239,10 @@ int main(void) {
 									  , sqrt(ObsCov.at<double>(1, 0)));
 	normal_distribution<> obsNoiseGen3(ObsMean.at<double>(2, 0)
 									  , sqrt(ObsCov.at<double>(2, 0)));
-	normal_distribution<> obsNoiseGen4(ObsMean.at<double>(3, 0)
-									  , sqrt(ObsCov.at<double>(3, 0)));
-	normal_distribution<> obsNoiseGen5(ObsMean.at<double>(4, 0)
-									  , sqrt(ObsCov.at<double>(4, 0)));
+	// normal_distribution<> obsNoiseGen4(ObsMean.at<double>(3, 0)
+	// 								  , sqrt(ObsCov.at<double>(3, 0)));
+	// normal_distribution<> obsNoiseGen5(ObsMean.at<double>(4, 0)
+	// 								  , sqrt(ObsCov.at<double>(4, 0)));
 	
 
 	double input = 0.0;
@@ -266,11 +266,11 @@ int main(void) {
 	  sensors[1] = obsNoiseGen2(engine)
 		+ ObsMean.at<double>(1, 0);
 	  sensors[2] = obsNoiseGen1(engine)
-		+ ObsMean.at<double>(3, 0);
-	  sensors[3] = obsNoiseGen2(engine)
-		+ ObsMean.at<double>(4, 0) + 5.5;
-	  sensors[4] = obsNoiseGen1(engine)
-		+ ObsMean.at<double>(5, 0) + 5.5;
+		+ ObsMean.at<double>(3, 0) + 5.5;
+	  // sensors[3] = obsNoiseGen2(engine)
+	  // 	+ ObsMean.at<double>(4, 0) + 5.5;
+	  // sensors[4] = obsNoiseGen1(engine)
+	  // 	+ ObsMean.at<double>(5, 0) + 5.5;
 
 	  for(int i = 0; i < observation_dimension; i++){
 		measurementNoise.at<double>(i, 0) = sensors[i];
@@ -398,9 +398,10 @@ int main(void) {
 			 << predict_x_ml << " "                 // [6] predicted state by PF(ML)
 			 << predict_x_ms << " "                 // [7] predicted state by PF(MS)
 			 << measurement.at<double>(1, 0) << " " // [8] second sensor
-			 << measurement.at<double>(2, 0) << " " // [9] third sensor
-			 << measurement.at<double>(3, 0) << " " // [10] forth sensor
-			 << measurement.at<double>(4, 0) << endl; // [11] fifth sensor
+			 << measurement.at<double>(2, 0) <<//  " " // [9] third sensor
+			 // << measurement.at<double>(3, 0) << " " // [10] forth sensor
+			 // << measurement.at<double>(4, 0) <<
+		endl; // [11] fifth sensor
 	  output_diff << state.at<double>(0, 0) - predict_x_pf << " "
 				  << state.at<double>(0, 0) - predict_x_ms << endl;
 	  last_state = state;

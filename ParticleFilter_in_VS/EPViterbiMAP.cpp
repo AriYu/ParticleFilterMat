@@ -165,16 +165,12 @@ void EPViterbiMat::Recursion(
 										 particle_filter.filtered_particles[i].state_,
 										 particle_filter.ProcessNoiseCov_,
 										 particle_filter.ProcessNoiseMean_);
-		  // if(i == j){
-		  // 	f_xx_vec[j] = log(1.0);
-		  // }else{
-		  // 	f_xx_vec[j] = log(0.1);
-		  // }
+	
 		  //sum = logsumexp(sum, f_xx_vec[j], (j==0));
 		}
 
 		// ===============================================
-		//p(x_k(i) | x_k-1(j))の正規化
+		// p(x_k(i) | x_k-1(j))の正規化
 		// for(int j = 0; j < particle_filter.samples_; j++){
 		//   f_xx_vec[j] = f_xx_vec[j] - sum;
 		// }
@@ -187,6 +183,7 @@ void EPViterbiMat::Recursion(
 		  lastdelta_fxx[j] = particle_filter.last_delta[j] + f_xx_vec[j];
 		  //lastdelta_fxx[j] = particle_filter.last_delta[j] + f_xx_vec[j] + g_yx_vec[i];
 		}
+
 		max[i] = *max_element( lastdelta_fxx.begin(), lastdelta_fxx.end() );
 
 		// delta[i] = g_yx_vec[i] + max[i];
@@ -228,6 +225,8 @@ cv::Mat EPViterbiMat::GetEstimation(ParticleFilterMat &particle_filter)
 {
     //=====================================================
     double max_ = 0;	
+
+
     for (int i = 0; i < last_particlefilter.samples_; i++){
     	if (i == 0){
 		  max_ = particle_filter.delta[0];

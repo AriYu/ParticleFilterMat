@@ -28,7 +28,7 @@
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
-#define NumOfParticle 1000
+#define NumOfParticle 200
 #define ESSth 10
 using namespace std;
 using namespace cv;
@@ -137,7 +137,7 @@ int main(void) {
   // Set Observation Noise
   // ==============================
   cv::Mat ObsCov        = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 0.05, 0.05, 0.05); // two sensor model.
+						   << 0.1, 0.1, 0.1); // two sensor model.
 						   //<< 0.05, 0.05, 0.05, 0.05, 0.05); // fifth sensor model.
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(observation_dimension, 1) 

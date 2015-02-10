@@ -635,8 +635,8 @@ int ParticleFilterMat::GetClusteringEstimation2(std::vector< std::vector<PStateM
   int num_of_dimension = dimX_;
   const double sigma = sqrt(ProcessNoiseCov_.at<double>(0,0));
   //const double sigma = 1.0;
-  const double clustering_threshold = (ProcessNoiseCov_.at<double>(0,0));
-  //const double clustering_threshold = 10.0;
+  //const double clustering_threshold = (ProcessNoiseCov_.at<double>(0,0));
+  const double clustering_threshold = 1.5;
   std::vector<int> indices;
   std::vector<PStateMat> target_particles;
   std::vector<PStateMat> target_particles_pre;
