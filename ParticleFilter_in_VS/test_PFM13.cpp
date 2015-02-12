@@ -28,12 +28,12 @@
 
 #define NumOfIterate 1
 #define NumOfParticle 1000
-#define ESSth 30
+#define ESSth 10
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 200.0;          //! loop limit
+const double T = 100.0;          //! loop limit
 
 const int state_dimension = 1;
 const int observation_dimension = 3;
@@ -110,7 +110,7 @@ double Trans_likelihood(const cv::Mat &x, const cv::Mat &xhat, const cv::Mat &co
 }
 
 
-int main(void) {
+int main(int argc,char *argv[]) {
 
   double ave_mmse  = 0;
   double ave_ml    = 0;
@@ -119,7 +119,10 @@ int main(void) {
   double ave_ms    = 0;
   double ave_ukf   = 0;
 
+  double sigma = 0;
+  double cls_th = 0;
 
+  
   // ==============================
   // Set Process Noise
   // ==============================
@@ -132,11 +135,22 @@ int main(void) {
   // Set Observation Noise
   // ==============================
   cv::Mat ObsCov        = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 1.0, 1.0, 1.0); // three sensor model.
+						   << 2.0, 2.0, 2.0); // three sensor model.
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(observation_dimension, 1) 
 						   << 0.0, 0.0, 0.0); // Five sensor model.
   std::cout << "ObsMean = " << ObsMean << std::endl << std::endl;
+
+  if (argc == 3) {
+	sigma = atof(argv[1]);
+	cls_th = atof(argv[2]);
+	cout << "sigma:" << sigma << endl;
+	cout << "clsth:" << cls_th << endl;
+  }else{
+	sigma = ProcessCov.at<double>(0,0);
+	cls_th = sqrt(sigma);
+  }
+
 
   // ==============================
   // Set Initial Particle Noise
@@ -327,8 +341,9 @@ int main(void) {
 	  timer.start();
 	  std::vector< std::vector<PStateMat> > clusters;
 	  // int num_of_cluster = pfm.GetClusteringEstimation(clusters, predictionMeanshiftEst);
-	  int num_of_cluster = pfm.GetClusteringEstimation2(clusters, predictionMeanshiftEst,
-														process, Trans_likelihood);
+	  int num_of_cluster = pfm.GetClusteringEstimation3(clusters, predictionMeanshiftEst,
+														process, Trans_likelihood,
+														sigma, cls_th);
 	  timer.stop();
 	  std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
 	  
@@ -444,6 +459,8 @@ int main(void) {
   std::cout << "- y(k) = x(k) + w(k) "         << std::endl;
   std::cout << "Particles   : " << NumOfParticle << std::endl;
   std::cout << "ESS th      : " << ESSth         << std::endl;
+  std::cout << "sigma       : " << sigma         << std::endl;
+  std::cout << "clsth       : " << cls_th        << std::endl;
   std::cout << "ProcessCov  = " << ProcessCov    << std::endl << std::endl;
   std::cout << "ObsCov      ="  << ObsCov        << std::endl << std::endl;
   std::cout << "RMSE(MMSE)  : " << ave_mmse  / (double)NumOfIterate << endl;

@@ -98,6 +98,17 @@ class ParticleFilterMat
 														 const cv::Mat &xhat,
 														 const cv::Mat &cov,
 														 const cv::Mat &mean));
+  int GetClusteringEstimation3(std::vector< std::vector<PStateMat> > &clusters,
+							   cv::Mat &est,
+							   void(*processmodel)(cv::Mat &x, 
+												   const cv::Mat &xpre, 
+												   const double &input, 
+												   const cv::Mat &rnd),
+							   double(*trans_likelihood)(const cv::Mat &x,
+														 const cv::Mat &xhat,
+														 const cv::Mat &cov,
+														 const cv::Mat &mean),
+							   double sigma, double cls_th);
  public : 
   cv::Mat A_; 
   cv::Mat B_;
