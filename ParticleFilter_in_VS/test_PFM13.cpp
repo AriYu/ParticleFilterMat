@@ -26,7 +26,7 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 1
+#define NumOfIterate 5
 #define NumOfParticle 1000
 #define ESSth 10
 using namespace std;
