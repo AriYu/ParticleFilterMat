@@ -2,7 +2,7 @@
 ## This script for test_PFM10, test_PFM11, test_PFM12
 ##--------------------------------
 #xと観測値のみをプロット
-#set grid
+set grid
 set xtics nomirror
 set ytics nomirror
 

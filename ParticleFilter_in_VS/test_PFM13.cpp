@@ -26,9 +26,9 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 5
-#define NumOfParticle 100
-#define ESSth 10
+#define NumOfIterate 1
+#define NumOfParticle 500
+#define ESSth 2
 using namespace std;
 using namespace cv;
 
@@ -67,7 +67,7 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
   // z.at<double>(0, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(0,0);
   // z.at<double>(1, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(1,0);
   for(int i = 0; i < observation_dimension; i++){
-	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
+  	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
   }
   //z.at<double>(1, 0) = x.at<double>(0, 0) + rnd.at<double>(1,0);
 }
