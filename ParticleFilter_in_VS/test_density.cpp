@@ -21,14 +21,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 4
+#define NumOfIterate 5
 #define NumOfParticle 1000
-#define ESSth 45
+#define ESSth 2
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 50.0;          //! loop limit
+const double T = 200.0;          //! loop limit
 
 const int state_dimension = 1;
 const int observation_dimension = 3;
@@ -42,12 +42,12 @@ const int observation_dimension = 3;
 //! rnd		: process noise
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
-  x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
-    + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
-    +  8.0 * cos(1.2*k)
-    + rnd.at<double>(0, 0);
+  // x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
+  //   + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
+  //   +  8.0 * cos(1.2*k)
+  //   + rnd.at<double>(0, 0);
   // x.at<double>(0,0) = xpre.at<double>(0,0) + 3.0 * cos(xpre.at<double>(0,0)/10) + rnd.at<double>(0,0);
-  //x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
+  x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
 }
 
 
@@ -57,13 +57,13 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 //! x : 状態ベクトル
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
-  z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
-      + rnd.at<double>(0, 0);
+  // z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
+  //     + rnd.at<double>(0, 0);
   // z.at<double>(0, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(0,0);
   // z.at<double>(1, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(1,0);
-  // for(int i = 0; i < observation_dimension; i++){
-  // 	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
-  // }
+  for(int i = 0; i < observation_dimension; i++){
+  	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
+  }
   //z.at<double>(0, 0) = x.at<double>(0, 0) + rnd.at<double>(0,0);
 }
 
@@ -79,8 +79,7 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 	double sum = 0;
 	std::vector<double> errors(observation_dimension, 0.0);
 	std::vector<double> tmps(observation_dimension, 0.0);
-	for(int i = 0; i< 1// observation_dimension
-		  ; i++){
+	for(int i = 0; i< observation_dimension; i++){
 	  errors[i] = z.at<double>(i, 0) - zhat.at<double>(i, 0) - mean.at<double>(i, 0);
 	  tmps[i] = -(errors[i]*errors[i]) / (2.0 * cov.at<double>(i, 0));
 	  //sum = logsumexp(sum, tmps[i], (i == 0));
@@ -122,7 +121,7 @@ int main(int argc,char *argv[]) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 10); // random walk.
+  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 0.1); // random walk.
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
@@ -131,7 +130,7 @@ int main(int argc,char *argv[]) {
   // Set Observation Noise
   // ==============================
   cv::Mat ObsCov        = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 1, 0.01, 0.01); // three sensor model.
+						   << 2.0, 2.0, 2.0); // three sensor model.
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(observation_dimension, 1) 
 						   << 0.0, 0.0, 0.0); // Five sensor model.
@@ -269,7 +268,7 @@ int main(int argc,char *argv[]) {
 	  sensors[1] = obsNoiseGen2(engine)
 		+ ObsMean.at<double>(1, 0);
 	  sensors[2] = obsNoiseGen1(engine)
-		+ ObsMean.at<double>(3, 0)+3.0;
+		+ ObsMean.at<double>(3, 0)+5.5;
 
 	  for(int i = 0; i < observation_dimension; i++){
 		measurementNoise.at<double>(i, 0) = sensors[i];
