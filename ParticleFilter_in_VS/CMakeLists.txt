@@ -76,3 +76,15 @@ add_executable(
   RootMeanSquareError.cpp
   )
 target_link_libraries( test_PFM14 ${OpenCV_LIBS} )
+
+add_executable( 
+  test_density test_density.cpp
+  mean_shift_clustering.cpp 
+  ParticleFilter.cpp
+  EPViterbiMAP.cpp
+  EPViterbiMAPAlpha.cpp
+  pfMapMat.cpp
+  unscented_kalman_filter.cpp
+  RootMeanSquareError.cpp
+  )
+target_link_libraries( test_density ${OpenCV_LIBS} )

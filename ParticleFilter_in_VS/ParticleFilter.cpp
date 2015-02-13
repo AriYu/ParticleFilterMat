@@ -169,6 +169,8 @@ ParticleFilterMat::ParticleFilterMat(const ParticleFilterMat& x)
 	this->isSetProcessNoise_ = x.isSetProcessNoise_;
 	this->isSetObsNoise_ = x.isSetObsNoise_;
 
+	this->likelihoods_.resize(x.likelihoods_.size());
+	likelihoods_ = x.likelihoods_;
 	//	this->indices_.resize(samples_);
 	this->predict_particles.resize(x.predict_particles.size());
 	std::copy(x.predict_particles.begin(),
@@ -202,6 +204,7 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 	samples_ = samples;
 	assert(samples_ > 0);
 
+	this->likelihoods_.resize(samples_,0);
 
 	this->predict_particles.reserve(samples_);
 	this->filtered_particles.reserve(samples_);
@@ -385,11 +388,11 @@ void ParticleFilterMat::CalcLikelihood(
     double sum = 0;
     cv::Mat obshat = observed.clone();
     cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
-    vector<double> l(samples_); // 対数重み
+    //vector<double> l(samples_); // 対数重み
     for (int i = 0; i < samples_; i++){
         obsmodel(obshat, filtered_particles[i].state_, rnd_num);
-        l[i] = likelihood(observed, obshat, ObsNoiseCov_, ObsNoiseMean_);
-        sum = logsumexp(sum, l[i], (i==0));
+        likelihoods_[i] = likelihood(observed, obshat, ObsNoiseCov_, ObsNoiseMean_);
+        sum = logsumexp(sum, likelihoods_[i], (i==0));
     }
 
     //====================================
@@ -398,8 +401,8 @@ void ParticleFilterMat::CalcLikelihood(
     double sum2 = 0;
     for (int i = 0; i < samples_; i++)
     {
-        l[i] = l[i] - sum; // Normalize weights
-        filtered_particles[i].weight_ += l[i];
+        likelihoods_[i] = likelihoods_[i] - sum; // Normalize weights
+        filtered_particles[i].weight_ += likelihoods_[i];
         sum2 = logsumexp(sum2, filtered_particles[i].weight_, (i == 0));
     }
     for (int i = 0; i < samples_; i++)
@@ -1074,6 +1077,83 @@ int ParticleFilterMat::GetClusteringEstimation3(std::vector< std::vector<PStateM
   return num_of_cluster;
 }
 
+double ParticleFilterMat::density(PStateMat x, PStateMat xhat){
+  double f = exp(-pow(x.state_.at<double>(0,0) - xhat.state_.at<double>(0,0), 2)
+				 /(2.0*ProcessNoiseCov_.at<double>(0,0)));
+  return f;
+}
+
+int ParticleFilterMat::KernelDensityEstimation( cv::Mat &est,
+												std::vector<double> &densities,
+												std::vector<double> &maps,
+												void(*processmodel)(cv::Mat &x, 
+																	const cv::Mat &xpre, 
+																	const double &input, 
+																	const cv::Mat &rnd),
+												double(*trans_likelihood)(const cv::Mat &x,
+																		  const cv::Mat &xhat,
+																		  const cv::Mat &cov,
+																		  const cv::Mat &mean))
+{
+  int num_of_dimension = dimX_;
+  std::vector<int> indices;
+  static PStateMat last_state(dimX_, 0.0);
+  double sum = 0;
+
+  if(densities.size() != samples_){
+	densities.resize(samples_);
+  }
+  if(maps.size() != samples_){
+	maps.resize(samples_);
+  }
+
+  for(int i = 0; i < samples_; i++){
+	densities[i] = 0;
+	for(int j = 0; j < samples_; j++){
+	  densities[i] += density(filtered_particles[i], filtered_particles[j]);
+	}
+	sum += densities[i];
+  }
+  for(int i = 0; i < samples_; i++){
+  	densities[i] = densities[i] / sum;
+  }
+
+  sum = 0;
+  for(int i = 0; i < samples_; i++){
+	//maps[i] = densities[i] * exp(likelihoods_[i]) * exp(last_filtered_particles[i].weight_);
+	maps[i] = densities[i] * exp(filtered_particles[i].weight_);
+	sum += maps[i];
+  }
+  for(int i = 0; i < samples_; i++){
+  	maps[i] = maps[i] / sum;
+  }
+
+  // 最大重み
+  // double max = maps[0];
+  // double idx = 0;
+  // for(int i = 0; i < samples_; i++){
+  // 	if(max < maps[i]){
+  // 	  max = maps[i];
+  // 	  idx = i;
+  // 	}
+  // }
+  // est = filtered_particles[idx].state_;
+
+  // 重み付き平均
+  double tmp = 0;
+  for (int j = 0; j < dimX_; j++){
+  	est.at<double>(j, 0) = 0.0;
+  	for (int i = 0; i < samples_; i++)
+  	  {
+  		tmp = (filtered_particles[i].state_.at<double>(j, 0) 
+  			   * maps[i]);
+  		est.at<double>(j, 0) += tmp;
+  	  }
+  }
+  return 0;
+}
+
+
 
 cv::Mat ParticleFilterMat::GetML()
 {
@@ -1091,6 +1171,8 @@ cv::Mat ParticleFilterMat::GetML()
 	}
 	return ml;
 }
+
+
 
 double calculationESS(std::vector<PStateMat> &states)
 {

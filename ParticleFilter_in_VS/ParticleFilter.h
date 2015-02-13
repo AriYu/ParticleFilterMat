@@ -109,6 +109,18 @@ class ParticleFilterMat
 														 const cv::Mat &cov,
 														 const cv::Mat &mean),
 							   double sigma, double cls_th);
+  double density(PStateMat x, PStateMat xhat);
+  int KernelDensityEstimation( cv::Mat &est,
+							   std::vector<double> &densities,
+							   std::vector<double> &maps,
+							   void(*processmodel)(cv::Mat &x, 
+												   const cv::Mat &xpre, 
+												   const double &input, 
+												   const cv::Mat &rnd),
+							   double(*trans_likelihood)(const cv::Mat &x,
+														 const cv::Mat &xhat,
+														 const cv::Mat &cov,
+														 const cv::Mat &mean));
  public : 
   cv::Mat A_; 
   cv::Mat B_;
@@ -122,6 +134,7 @@ class ParticleFilterMat
   bool isSetObsNoise_;
   bool isResampled_;
   int samples_; // パーティクルの数
+  std::vector< double > likelihoods_;
   std::vector< PStateMat > predict_particles;
   std::vector< PStateMat > filtered_particles;
   std::vector< PStateMat > last_filtered_particles;
