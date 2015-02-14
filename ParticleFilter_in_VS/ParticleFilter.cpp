@@ -1099,6 +1099,7 @@ int ParticleFilterMat::KernelDensityEstimation( cv::Mat &est,
   std::vector<int> indices;
   static PStateMat last_state(dimX_, 0.0);
   double sum = 0;
+  double sum2 = 0;
 
   if(densities.size() != samples_){
 	densities.resize(samples_);
@@ -1115,41 +1116,38 @@ int ParticleFilterMat::KernelDensityEstimation( cv::Mat &est,
 	sum += densities[i];
   }
   for(int i = 0; i < samples_; i++){
-  	densities[i] = densities[i] / sum;
-  }
-
-  sum = 0;
-  for(int i = 0; i < samples_; i++){
+  	densities[i] = densities[i] / sum; // 正規化
 	//maps[i] = densities[i] * exp(likelihoods_[i]) * exp(last_filtered_particles[i].weight_);
 	maps[i] = densities[i] * exp(filtered_particles[i].weight_);
-	sum += maps[i];
+	sum2 += maps[i];
   }
+
   for(int i = 0; i < samples_; i++){
-  	maps[i] = maps[i] / sum;
+  	maps[i] = maps[i] / sum2;
   }
 
   // 最大重み
-  // double max = maps[0];
-  // double idx = 0;
-  // for(int i = 0; i < samples_; i++){
-  // 	if(max < maps[i]){
-  // 	  max = maps[i];
-  // 	  idx = i;
-  // 	}
-  // }
-  // est = filtered_particles[idx].state_;
+  double max = maps[0];
+  double idx = 0;
+  for(int i = 0; i < samples_; i++){
+  	if(max < maps[i]){
+  	  max = maps[i];
+  	  idx = i;
+  	}
+  }
+  est = filtered_particles[idx].state_;
 
   // 重み付き平均
-  double tmp = 0;
-  for (int j = 0; j < dimX_; j++){
-  	est.at<double>(j, 0) = 0.0;
-  	for (int i = 0; i < samples_; i++)
-  	  {
-  		tmp = (filtered_particles[i].state_.at<double>(j, 0) 
-  			   * maps[i]);
-  		est.at<double>(j, 0) += tmp;
-  	  }
-  }
+  // double tmp = 0;
+  // for (int j = 0; j < dimX_; j++){
+  // 	est.at<double>(j, 0) = 0.0;
+  // 	for (int i = 0; i < samples_; i++)
+  // 	  {
+  // 		tmp = (filtered_particles[i].state_.at<double>(j, 0) 
+  // 			   * maps[i]);
+  // 		est.at<double>(j, 0) += tmp;
+  // 	  }
+  // }
   return 0;
 }
 
