@@ -22,13 +22,13 @@
 #define	PARTICLE_IO
 
 #define NumOfIterate 1
-#define NumOfParticle 1000
+#define NumOfParticle 300
 #define ESSth 10
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 200.0;          //! loop limit
+const double T = 500.0;          //! loop limit
 
 const int state_dimension = 1;
 const int observation_dimension = 3;
@@ -61,7 +61,7 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
   //     + rnd.at<double>(0, 0);
   //z.at<double>(0, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(0,0);
   // z.at<double>(1, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(1,0);
-  for(int i = 0; i < 3// observation_dimension
+  for(int i = 0; i < 2// observation_dimension
 		; i++){
   	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
   }
@@ -80,7 +80,7 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 	double sum = 0;
 	std::vector<double> errors(observation_dimension, 0.0);
 	std::vector<double> tmps(observation_dimension, 0.0);
-	for(int i = 0; i< 3// observation_dimension
+	for(int i = 0; i< 2// observation_dimension
 		  ; i++){
 	  errors[i] = z.at<double>(i, 0) - zhat.at<double>(i, 0) - mean.at<double>(i, 0);
 	  tmps[i] = -(errors[i]*errors[i]) / (2.0 * cov.at<double>(i, 0));
@@ -123,7 +123,7 @@ int main(int argc,char *argv[]) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 0.05); // random walk.
+  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 0.10); // random walk.
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
@@ -132,7 +132,7 @@ int main(int argc,char *argv[]) {
   // Set Observation Noise
   // ==============================
   cv::Mat ObsCov        = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 0.5, 0.5, 0.5); // three sensor model.
+						   << 10.0, 5.0, 0.5); // three sensor model.
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(observation_dimension, 1) 
 						   << 0.0, 0.0, 0.0); // Five sensor model.
@@ -183,12 +183,12 @@ int main(int argc,char *argv[]) {
 	if (!particles_after_file.is_open()){ 
 	  std::cout << "open result_particle output failed" << endl; return -1; }
 	std::vector<ofstream> clustered_file((int)T); // x
-	for(int i = 0; i < (int)T; i++){
-	  string filename = "clustered_files/clustered_" + std::to_string(i) + ".dat";
-	  clustered_file[i].open(filename.c_str(), ios::out);
-	  if (!clustered_file[i].is_open()){ 
-		std::cout << "open clustered failed" << endl; return -1; }
-	}
+	// for(int i = 0; i < (int)T; i++){
+	//   string filename = "clustered_files/clustered_" + std::to_string(i) + ".dat";
+	//   clustered_file[i].open(filename.c_str(), ios::out);
+	//   if (!clustered_file[i].is_open()){ 
+	// 	std::cout << "open clustered failed : [" << i << "]"<< endl; return -1; }
+	// }
 #endif // PARTICLE_IO
 
 	// ==============================
@@ -268,11 +268,11 @@ int main(int argc,char *argv[]) {
 	  // Generate Observation Value
 	  // ==============================
 	  sensors[0] = obsNoiseGen1(engine)
-		+ ObsMean.at<double>(0, 0);
+		+ ObsMean.at<double>(0, 0)+3.0;
 	  sensors[1] = obsNoiseGen2(engine)
-		+ ObsMean.at<double>(1, 0)+0.5;
+		+ ObsMean.at<double>(1, 0);
 	  sensors[2] = obsNoiseGen1(engine)
-		+ ObsMean.at<double>(3, 0);
+		+ ObsMean.at<double>(3, 0)+0.5;
 
 	  for(int i = 0; i < observation_dimension; i++){
 		measurementNoise.at<double>(i, 0) = sensors[i];
