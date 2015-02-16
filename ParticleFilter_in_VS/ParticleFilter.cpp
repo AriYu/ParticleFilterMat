@@ -1117,13 +1117,13 @@ int ParticleFilterMat::KernelDensityEstimation( cv::Mat &est,
   }
   for(int i = 0; i < samples_; i++){
   	densities[i] = densities[i] / sum; // 正規化
-	//maps[i] = densities[i] * exp(likelihoods_[i]) * exp(last_filtered_particles[i].weight_);
-	maps[i] = densities[i] * exp(filtered_particles[i].weight_);
+	maps[i] = (1.0*densities[i])*(3.0*exp(filtered_particles[i].weight_));
+	//maps[i] = densities[i] * exp(filtered_particles[i].weight_);
 	sum2 += maps[i];
   }
 
   for(int i = 0; i < samples_; i++){
-  	maps[i] = maps[i] / sum2;
+  	maps[i] = maps[i] / sum2; // 正規化
   }
 
   // 最大重み

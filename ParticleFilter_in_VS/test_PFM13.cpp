@@ -306,15 +306,21 @@ int main(int argc,char *argv[]) {
 
 	  pfm.CalcLikelihood(observation, Obs_likelihood, measurement);
 
-#ifdef PARTICLE_IO
-	  for (int i = 0; i < pfm.samples_; i++){
-		particles_file << pfm.filtered_particles[i].state_.at<double>(0, 0) << " " 
-					   << exp(pfm.filtered_particles[i].weight_) << endl;
-	  }
-	  particles_file << endl; particles_file << endl;
-#endif // PARTICLE_IO
 
-            
+	  // ==============================
+	  // Kernel Desntisy
+	  // ==============================
+	  Mat predictionKernelEst = Mat::zeros(state_dimension, 1, CV_64F);
+	  timer.start();
+	  std::vector< double > densities(pfm.samples_, 0.0);
+	  std::vector< double > maps(pfm.samples_, 0.0);
+	  pfm.KernelDensityEstimation(predictionKernelEst, densities, 
+								  maps,process, Trans_likelihood);
+ 
+	  timer.stop();
+	  std::cout << "Kernel time  :" << timer.getElapsedTime() << std::endl;
+
+
 	  // ==============================
 	  // EP-VGM Process
 	  // ==============================
@@ -353,7 +359,17 @@ int main(int argc,char *argv[]) {
 	  // ==================================
 	 // ukf.Update(process, observation, measurement);
 	  cv::Mat ukf_est = ukf.GetEstimation();
-		  
+
+
+#ifdef PARTICLE_IO
+	  for (int i = 0; i < pfm.samples_; i++){
+		particles_file << pfm.filtered_particles[i].state_.at<double>(0, 0) << " " 
+					   << exp(pfm.filtered_particles[i].weight_) << endl;
+	  }
+	  particles_file << endl; particles_file << endl;
+#endif // PARTICLE_IO
+
+           	  
 	  // ==============================
 	  // Get Estimation
 	  // ==============================
