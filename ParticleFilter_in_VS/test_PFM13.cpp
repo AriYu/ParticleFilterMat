@@ -26,14 +26,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 1
-#define NumOfParticle 500
-#define ESSth 2
+#define NumOfIterate 5
+#define NumOfParticle 1000
+#define ESSth 45
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 100.0;          //! loop limit
+const double T = 200.0;          //! loop limit
 
 const int state_dimension = 1;
 const int observation_dimension = 3;
@@ -47,12 +47,13 @@ const int observation_dimension = 3;
 //! rnd		: process noise
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
-  // x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
-  //   + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
-  //   +  8.0 * cos(1.2*k)
-  //   + rnd.at<double>(0, 0);
+  x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
+    + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
+    +  8.0 * cos(1.2*k)
+    + rnd.at<double>(0, 0);
   //x.at<double>(0,0) = xpre.at<double>(0,0) + 3.0 * cos(xpre.at<double>(0,0)/10) + rnd.at<double>(0,0);
-  x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
+  //x.at<double>(0,0) = 3.0 * cos(xpre.at<double>(0,0)) + rnd.at<double>(0,0);
+  // x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
 }
 
 
@@ -62,14 +63,14 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 //! x : èÛë‘ÉxÉNÉgÉã
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
-  // z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
-  //     + rnd.at<double>(0, 0);
+  z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
+      + rnd.at<double>(0, 0);
   // z.at<double>(0, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(0,0);
   // z.at<double>(1, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(1,0);
-  for(int i = 0; i < observation_dimension; i++){
-  	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
-  }
-  //z.at<double>(1, 0) = x.at<double>(0, 0) + rnd.at<double>(1,0);
+  // for(int i = 0; i < observation_dimension; i++){
+  // 	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
+  // }
+  // z.at<double>(1, 0) = x.at<double>(0, 0) + rnd.at<double>(1,0);
 }
 
 
@@ -84,13 +85,21 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 	double sum = 0;
 	std::vector<double> errors(observation_dimension, 0.0);
 	std::vector<double> tmps(observation_dimension, 0.0);
-	for(int i = 0; i< observation_dimension; i++){
+	// for(int i = 0; i< observation_dimension; i++){
+	//   errors[i] = z.at<double>(i, 0) - zhat.at<double>(i, 0) - mean.at<double>(i, 0);
+	//   tmps[i] = -(errors[i]*errors[i]) / (2.0 * cov.at<double>(i, 0));
+	//   //sum = logsumexp(sum, tmps[i], (i == 0));
+	//   sum += exp(tmps[i]);
+	// }
+	// sum = log(sum);
+	for(int i = 0; i< 1; i++){
 	  errors[i] = z.at<double>(i, 0) - zhat.at<double>(i, 0) - mean.at<double>(i, 0);
 	  tmps[i] = -(errors[i]*errors[i]) / (2.0 * cov.at<double>(i, 0));
 	  //sum = logsumexp(sum, tmps[i], (i == 0));
 	  sum += exp(tmps[i]);
 	}
 	sum = log(sum);
+
 	//sum = log(exp(tmp1) + exp(tmp2));
 	
     return sum;
@@ -126,7 +135,7 @@ int main(int argc,char *argv[]) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 1.0); // random walk.
+  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 10.0); // random walk.
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
@@ -135,7 +144,7 @@ int main(int argc,char *argv[]) {
   // Set Observation Noise
   // ==============================
   cv::Mat ObsCov        = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 2.0, 2.0, 2.0); // three sensor model.
+						   << 1.0, 2.0, 2.0); // three sensor model.
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(observation_dimension, 1) 
 						   << 0.0, 0.0, 0.0); // Five sensor model.
@@ -310,11 +319,12 @@ int main(int argc,char *argv[]) {
 	  // ==============================
 	  // Kernel Desntisy
 	  // ==============================
-	  Mat predictionKernelEst = Mat::zeros(state_dimension, 1, CV_64F);
+	  //Mat predictionKernelEst = Mat::zeros(state_dimension, 1, CV_64F);
+	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
 	  timer.start();
 	  std::vector< double > densities(pfm.samples_, 0.0);
 	  std::vector< double > maps(pfm.samples_, 0.0);
-	  pfm.KernelDensityEstimation(predictionKernelEst, densities, maps,process, 
+	  pfm.KernelDensityEstimation(predictionMeanshiftEst, densities, maps,process, 
 								  observation, Trans_likelihood, Obs_likelihood, measurement);
  
  
@@ -344,15 +354,15 @@ int main(int argc,char *argv[]) {
 	  // ==============================
 	  // MeanShift method
 	  // ==============================
-	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
-	  timer.start();
-	  std::vector< std::vector<PStateMat> > clusters;
-	  // int num_of_cluster = pfm.GetClusteringEstimation(clusters, predictionMeanshiftEst);
-	  int num_of_cluster = pfm.GetClusteringEstimation3(clusters, predictionMeanshiftEst,
-														process, Trans_likelihood,
-														sigma, cls_th);
-	  timer.stop();
-	  std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
+	  // Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
+	  // timer.start();
+	   std::vector< std::vector<PStateMat> > clusters;
+	  // // int num_of_cluster = pfm.GetClusteringEstimation(clusters, predictionMeanshiftEst);
+	  // int num_of_cluster = pfm.GetClusteringEstimation3(clusters, predictionMeanshiftEst,
+	  // 													process, Trans_likelihood,
+	  // 													sigma, cls_th);
+	  // timer.stop();
+	  // std::cout << "ms-PF time  :" << timer.getElapsedTime() << std::endl;
 	  
 
 	  // ==================================
