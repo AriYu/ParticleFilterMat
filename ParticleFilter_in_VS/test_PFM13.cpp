@@ -314,8 +314,9 @@ int main(int argc,char *argv[]) {
 	  timer.start();
 	  std::vector< double > densities(pfm.samples_, 0.0);
 	  std::vector< double > maps(pfm.samples_, 0.0);
-	  pfm.KernelDensityEstimation(predictionKernelEst, densities, 
-								  maps,process, Trans_likelihood);
+	  pfm.KernelDensityEstimation(predictionKernelEst, densities, maps,process, 
+								  observation, Trans_likelihood, Obs_likelihood, measurement);
+ 
  
 	  timer.stop();
 	  std::cout << "Kernel time  :" << timer.getElapsedTime() << std::endl;

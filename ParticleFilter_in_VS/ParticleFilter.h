@@ -117,10 +117,17 @@ class ParticleFilterMat
 												   const cv::Mat &xpre, 
 												   const double &input, 
 												   const cv::Mat &rnd),
+							   void(*obsmodel)(cv::Mat &z, 
+											   const cv::Mat &x, 
+											   const cv::Mat &rnd),
 							   double(*trans_likelihood)(const cv::Mat &x,
 														 const cv::Mat &xhat,
 														 const cv::Mat &cov,
-														 const cv::Mat &mean));
+														 const cv::Mat &mean),
+							   double(*likelihood)(const cv::Mat &z, const cv::Mat &zhat, 
+												   const cv::Mat &cov, const cv::Mat &mean),
+							   const cv::Mat &observed);
+  double EuclideanDistance(PStateMat p1,PStateMat p2, double h);
  public : 
   cv::Mat A_; 
   cv::Mat B_;
@@ -139,7 +146,7 @@ class ParticleFilterMat
   std::vector< PStateMat > filtered_particles;
   std::vector< PStateMat > last_filtered_particles;
 
-
+  std::vector<PStateMat> new_state; // for mean shift 
   // For Viterbi Algorithm
   std::vector<double> delta;
   std::vector<double> last_delta;

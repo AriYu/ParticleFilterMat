@@ -15,7 +15,7 @@ set terminal pdf
 # }
 do for[j=0:99]{
 	set output sprintf("particles-%d.pdf",j)
-	plot "../../result_particle.dat" ind j u 1:2 pt 7 ps 0.3 t sprintf("weight %d",j),"../../result_particle.dat" ind j u 1:3 pt 7 ps 0.3 t sprintf("density %d",j),"../../result_particle.dat" ind j u 1:4 pt 7 ps 0.3 t sprintf ("maps %d",j),"../../result_particle.dat" ind j u 1:5 pt 7 ps 0.3 t sprintf("likelihoods %d",j) # ,"../../result_particle.dat" ind j u 1:6 pt 7 ps 0.3 t sprintf("last weight %d",j)
+	plot "../../result_particle.dat" ind j u 1:2 pt 7 ps 0.3 t sprintf("weight %d",j),"../../result_particle.dat" ind j u 1:3 pt 7 ps 0.3 t sprintf("density %d",j),"../../result_particle.dat" ind j u 7:4 pt 7 ps 0.3 t sprintf ("maps %d",j),"../../result_particle.dat" ind j u 1:5 pt 7 ps 0.3 t sprintf("likelihoods %d",j) # ,"../../result_particle.dat" ind j u 1:6 pt 7 ps 0.3 t sprintf("last weight %d",j)
 	set output
 }
 

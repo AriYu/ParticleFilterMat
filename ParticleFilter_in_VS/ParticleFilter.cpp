@@ -206,6 +206,13 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 
 	this->likelihoods_.resize(samples_,0);
 
+	{
+	  PStateMat pstatex(dimX_, 0);
+	  this->new_state.reserve(samples_);
+	  for(int i = 0; i < samples_; i++){
+		new_state.push_back(pstatex);
+	  }
+	}
 	this->predict_particles.reserve(samples_);
 	this->filtered_particles.reserve(samples_);
 	this->last_filtered_particles.reserve(samples_);
@@ -1090,14 +1097,30 @@ int ParticleFilterMat::KernelDensityEstimation( cv::Mat &est,
 																	const cv::Mat &xpre, 
 																	const double &input, 
 																	const cv::Mat &rnd),
+												void(*obsmodel)(cv::Mat &z, 
+																const cv::Mat &x, 
+																const cv::Mat &rnd),
 												double(*trans_likelihood)(const cv::Mat &x,
 																		  const cv::Mat &xhat,
 																		  const cv::Mat &cov,
-																		  const cv::Mat &mean))
+																		  const cv::Mat &mean),
+												double(*likelihood)(const cv::Mat &z, 
+																	const cv::Mat &zhat, 
+																	const cv::Mat &cov, 
+																	const cv::Mat &mean),
+												const cv::Mat &observed)
 {
   int num_of_dimension = dimX_;
   std::vector<int> indices;
-  static PStateMat last_state(dimX_, 0.0);
+  static PStateMat pstatex(dimX_, 0);
+  //static std::vector<PStateMat> new_state(samples_, pstatex);
+  static random_device rdev;
+  static mt19937 engine(rdev());
+  static normal_distribution<> processNoiseGen(ProcessNoiseMean_.at<double>(0, 0)
+										  , sqrt(ProcessNoiseCov_.at<double>(0, 0)));
+  static cv::Mat obs_new = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
+  static cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
+  static std::vector<double> new_likelihoods(samples_, 0);
   double sum = 0;
   double sum2 = 0;
 
@@ -1107,47 +1130,81 @@ int ParticleFilterMat::KernelDensityEstimation( cv::Mat &est,
   if(maps.size() != samples_){
 	maps.resize(samples_);
   }
-
+  
+  double denominator = 0; // 分母
+  double numerator = 0; // 分子
+  double dist = 0; double g_i = 0;
   for(int i = 0; i < samples_; i++){
 	densities[i] = 0;
+	denominator = 0;
+	numerator = 0;
 	for(int j = 0; j < samples_; j++){
-	  densities[i] += density(filtered_particles[i], filtered_particles[j]);
+	  dist = this->EuclideanDistance(filtered_particles[i].state_, 
+									 filtered_particles[j].state_,
+									 ProcessNoiseCov_.at<double>(0,0));
+	  g_i = -dist * exp(-pow(dist,2.0)/2.0);
+   	  densities[i] += density(filtered_particles[i], filtered_particles[j]);
+	  // numerator += density(filtered_particles[i], filtered_particles[j])
+	  // 	*exp(likelihoods_[j])*filtered_particles[j].state_.at<double>(0,0);
+	  numerator += (g_i * filtered_particles[j].state_.at<double>(0,0));
+	  // denominator += density(filtered_particles[i], filtered_particles[j])
+	  // 	*exp(likelihoods_[j]);
+	  denominator += g_i;
 	}
+	new_state[i].state_.at<double>(0,0) 
+	  = numerator / denominator + processNoiseGen(engine);
+	new_state[i].weight_ = predict_particles[i].weight_;
 	sum += densities[i];
   }
+  double sum_new_likelihood = 0;
   for(int i = 0; i < samples_; i++){
   	densities[i] = densities[i] / sum; // 正規化
 	maps[i] = (1.0*densities[i])*(3.0*exp(filtered_particles[i].weight_));
 	//maps[i] = densities[i] * exp(filtered_particles[i].weight_);
 	sum2 += maps[i];
+	obsmodel(obs_new, new_state[i].state_, rnd_num);
+	new_likelihoods[i] = likelihood(observed, obs_new, ObsNoiseCov_, ObsNoiseMean_);
+	sum_new_likelihood = logsumexp(sum_new_likelihood, new_likelihoods[i], (i == 0));
   }
 
+  double sum3 = 0;
   for(int i = 0; i < samples_; i++){
   	maps[i] = maps[i] / sum2; // 正規化
+	new_likelihoods[i] = new_likelihoods[i] - sum_new_likelihood;
+	new_state[i].weight_ += new_likelihoods[i];
+	sum3 = logsumexp(sum3, new_state[i].weight_, (i==0));
   }
+  
+  for(int i = 0; i < samples_; i++){
+  	new_state[i].weight_ = new_state[i].weight_ - sum3;
+  	maps[i] = exp(new_state[i].weight_);
+  }
+
 
   // 最大重み
-  double max = maps[0];
-  double idx = 0;
-  for(int i = 0; i < samples_; i++){
-  	if(max < maps[i]){
-  	  max = maps[i];
-  	  idx = i;
-  	}
-  }
-  est = filtered_particles[idx].state_;
+  // double max = maps[0];
+  // double idx = 0;
+  // for(int i = 0; i < samples_; i++){
+  // 	if(max < maps[i]){
+  // 	  max = maps[i];
+  // 	  idx = i;
+  // 	}
+  // }
+  // est = filtered_particles[idx].state_;
 
   // 重み付き平均
-  // double tmp = 0;
-  // for (int j = 0; j < dimX_; j++){
-  // 	est.at<double>(j, 0) = 0.0;
-  // 	for (int i = 0; i < samples_; i++)
-  // 	  {
-  // 		tmp = (filtered_particles[i].state_.at<double>(j, 0) 
-  // 			   * maps[i]);
-  // 		est.at<double>(j, 0) += tmp;
-  // 	  }
-  // }
+  double tmp = 0;
+  for (int j = 0; j < dimX_; j++){
+  	est.at<double>(j, 0) = 0.0;
+  	for (int i = 0; i < samples_; i++)
+  	  {
+  		// tmp = (filtered_particles[i].state_.at<double>(j, 0) 
+  		// 	   * maps[i]);
+		tmp = (new_state[i].state_.at<double>(j, 0) 
+  		 	   * exp(new_state[i].weight_));
+  		est.at<double>(j, 0) += tmp;
+  	  }
+  }
   return 0;
 }
 
@@ -1494,3 +1551,14 @@ double pfMAP::GetEstimation(PFilter &pfilter, double t, double obs_y)
 	return pfilter.m_n_particle[max_i].x;
 }
 
+double ParticleFilterMat::EuclideanDistance(PStateMat p1,
+											  PStateMat p2,
+											  double h)
+{
+  double distance = 0;
+  for(int i = 0; i < dimX_; i++){
+	distance += pow((p1.state_.at<double>(i,0) - p2.state_.at<double>(i,0))/h, 2.0);
+  }
+  return sqrt(distance);
+  //  return cv::norm(p1.state_, p2.state_);
+}
