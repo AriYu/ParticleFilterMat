@@ -145,6 +145,7 @@ class ParticleFilterMat
   std::vector< PStateMat > predict_particles;
   std::vector< PStateMat > filtered_particles;
   std::vector< PStateMat > last_filtered_particles;
+  std::vector< double > densities_tmps_;
 
   std::vector<PStateMat> new_state; // for mean shift 
   // For Viterbi Algorithm

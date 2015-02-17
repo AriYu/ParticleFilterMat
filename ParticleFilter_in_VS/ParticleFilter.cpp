@@ -205,7 +205,7 @@ void ParticleFilterMat::Init(int samples, cv::Mat initCov, cv::Mat initMean)
 	assert(samples_ > 0);
 
 	this->likelihoods_.resize(samples_,0);
-
+	this->densities_tmps_.resize(samples_, 0);
 	{
 	  PStateMat pstatex(dimX_, 0);
 	  this->new_state.reserve(samples_);
@@ -1110,15 +1110,14 @@ int ParticleFilterMat::KernelDensityEstimation( cv::Mat &est,
 																	const cv::Mat &mean),
 												const cv::Mat &observed)
 {
-  int num_of_dimension = dimX_;
-  std::vector<int> indices;
-  static PStateMat pstatex(dimX_, 0);
+   static PStateMat pstatex(dimX_, 0);
   //static std::vector<PStateMat> new_state(samples_, pstatex);
   static cv::Mat obs_new = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
   static cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
   static std::vector<double> new_likelihoods(samples_, 0);
   double sum = 0;
   double sum2 = 0;
+  double sum_densities = 0;
 
   if(densities.size() != samples_){
 	densities.resize(samples_);
@@ -1133,14 +1132,16 @@ int ParticleFilterMat::KernelDensityEstimation( cv::Mat &est,
  	  densities[i] += density(filtered_particles[i], filtered_particles[j]);
 	  //	* exp(last_filtered_particles[j].weight_);
 	}
-	densities[i] = densities[i] * exp(last_filtered_particles[i].weight_);
-	sum += densities[i];
+	sum_densities += densities[i];
+	densities_tmps_[i] = densities[i] * exp(last_filtered_particles[i].weight_);
+	sum += densities_tmps_[i];
   }
 
   double sum_new_likelihood = 0;
   for(int i = 0; i < samples_; i++){
-  	densities[i] = densities[i] / sum; // 正規化
-	maps[i] = densities[i] * exp(likelihoods_[i]);
+  	densities_tmps_[i] = densities_tmps_[i] / sum; // 正規化
+	densities[i] = densities[i] / sum_densities;
+	maps[i] = densities_tmps_[i] * exp(likelihoods_[i]);
 	sum2 += maps[i];
  }
 

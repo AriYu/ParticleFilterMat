@@ -26,14 +26,14 @@
 
 #define	PARTICLE_IO
 
-#define NumOfIterate 5
+#define NumOfIterate 1
 #define NumOfParticle 1000
-#define ESSth 5
+#define ESSth 10
 using namespace std;
 using namespace cv;
 
 double       k = 0.0;		//! loop count
-const double T = 200.0;          //! loop limit
+const double T = 51;          //! loop limit
 
 const int state_dimension = 1;
 const int observation_dimension = 3;
@@ -53,7 +53,11 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
   //   + rnd.at<double>(0, 0);
   //x.at<double>(0,0) = xpre.at<double>(0,0) + 3.0 * cos(xpre.at<double>(0,0)/10) + rnd.at<double>(0,0);
   //x.at<double>(0,0) = 3.0 * cos(xpre.at<double>(0,0)) + rnd.at<double>(0,0);
-  x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
+  //x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
+
+  //---------------------
+  // linear model
+  x.at<double>(0,0) = xpre.at<double>(0,0)/2.0 + 3.0*cos(2*(k-1)) + rnd.at<double>(0,0);
 }
 
 
@@ -70,7 +74,7 @@ void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
   for(int i = 0; i < observation_dimension; i++){
   	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
   }
-  // z.at<double>(1, 0) = x.at<double>(0, 0) + rnd.at<double>(1,0);
+  //z.at<double>(0, 0) = x.at<double>(0, 0) + rnd.at<double>(0,0);
 }
 
 
@@ -292,7 +296,7 @@ int main(int argc,char *argv[]) {
 	  sensors[1] = obsNoiseGen2(engine)
 		+ ObsMean.at<double>(1, 0);
 	  sensors[2] = obsNoiseGen1(engine)
-		+ ObsMean.at<double>(3, 0) + 5.5;
+		+ ObsMean.at<double>(3, 0) + 2.5;
 	  // sensors[3] = obsNoiseGen2(engine)
 	  // 	+ ObsMean.at<double>(4, 0) + 5.5;
 	  // sensors[4] = obsNoiseGen1(engine)
@@ -328,7 +332,7 @@ int main(int argc,char *argv[]) {
 	  pfm.KernelDensityEstimation(predictionMeanshiftEst, densities, maps,process, 
 								  observation, Trans_likelihood, Obs_likelihood, measurement);
 	  timer.stop();
-	  std::cout << "Kernel time  :" << timer.getElapsedTime() << std::endl;
+	  std::cout << "Kernel time :" << timer.getElapsedTime() << std::endl;
 
 
 	  // ==============================
@@ -374,7 +378,12 @@ int main(int argc,char *argv[]) {
 #ifdef PARTICLE_IO
 	  for (int i = 0; i < pfm.samples_; i++){
 		particles_file << pfm.filtered_particles[i].state_.at<double>(0, 0) << " " 
-					   << exp(pfm.filtered_particles[i].weight_) << endl;
+					   << exp(pfm.filtered_particles[i].weight_) << " " 
+					   << densities[i] << " " 
+					   << maps[i] << " "
+					   << exp(pfm.likelihoods_[i]) << " "
+					   << exp(pfm.predict_particles[i].weight_) <<  " "
+					   << pfm.new_state[i].state_.at<double>(0,0) << endl;
 	  }
 	  particles_file << endl; particles_file << endl;
 #endif // PARTICLE_IO
@@ -431,6 +440,7 @@ int main(int argc,char *argv[]) {
 	  // ==============================
 	  // Save Estimated State
 	  // ==============================
+#ifdef PARTICLE_IO
 	  output << state.at<double>(0, 0) << " "       // [1] true state
 			 << measurement.at<double>(0, 0) << " " // [2] first sensor
 			 << predict_x_pf << " "                 // [3] predicted state by PF(MMSE)
@@ -445,6 +455,7 @@ int main(int argc,char *argv[]) {
 		endl; // [11] fifth sensor
 	  output_diff << state.at<double>(0, 0) - predict_x_pf << " "
 				  << state.at<double>(0, 0) - predict_x_ms << endl;
+#endif // PARTICLE_IO
 	  last_state = state;
 
 	  cout << endl;
