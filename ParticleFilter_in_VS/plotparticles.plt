@@ -6,6 +6,8 @@
 #pause -1 "press [Enter] key or [OK] button to quit"
 
 reset
+set xtics nomirror
+set ytics nomirror
 cd "./graph/particles"
 set terminal pdf
 # do for[j=0:99]{
@@ -13,7 +15,7 @@ set terminal pdf
 # 	plot "../../result_particle.dat" ind j u 1:2 smooth unique w linespoints pt 7 ps 1 t sprintf("particles%d",j)
 # 	set output
 # }
-do for[j=0:99]{
+do for[j=0:101]{
 	set output sprintf("particles-%d.pdf",j)
 	plot "../../result_particle.dat" ind j u 1:2 pt 7 ps 0.5 t sprintf("particles%d",j)
 	set output
@@ -44,7 +46,7 @@ do for[j=0:99]{
 
 cd "../viterbi"
 set terminal pdf
-do for[j=0:100]{
+do for[j=0:101]{
 	set output sprintf("viterbi-%d.pdf",j)
 	plot "../../epvgm.dat" ind j u 2:6 smooth unique w linespoints pt 7 ps 1 t sprintf("viterbi%d",j)
 	set output

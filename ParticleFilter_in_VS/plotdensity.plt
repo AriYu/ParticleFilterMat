@@ -6,19 +6,18 @@
 #pause -1 "press [Enter] key or [OK] button to quit"
 
 reset
-cd "./graph/particles"
+cd "./graph/densities"
+set xtics nomirror
+set ytics nomirror
+
 set terminal pdf
-# do for[j=0:99]{
-# 	set output sprintf("particles-%d.pdf",j)
-# 	plot "../../result_particle.dat" ind j u 1:2 smooth unique w linespoints pt 7 ps 1 t sprintf("particles%d",j)
-# 	set output
-# }
-do for[j=0:99]{
-	set output sprintf("particles-%d.pdf",j)
+
+
+do for[j=0:101]{
+    set output sprintf("densities-%d.pdf",j)
 	plot "../../result_particle.dat" ind j u 1:2 pt 7 ps 0.3 t sprintf("weight %d",j),"../../result_particle.dat" ind j u 7:3 pt 7 ps 0.3 t sprintf("density %d",j),"../../result_particle.dat" ind j u 7:4 pt 7 ps 0.3 t sprintf ("maps %d",j),"../../result_particle.dat" ind j u 1:5 pt 7 ps 0.3 t sprintf("likelihoods %d",j) # ,"../../result_particle.dat" ind j u 1:6 pt 7 ps 0.3 t sprintf("last weight %d",j)
 	set output
 }
-
 
 
 # set dgrid3d 30, 30
@@ -41,14 +40,6 @@ do for[j=0:99]{
 
 
 # reset
-
-cd "../viterbi"
-set terminal pdf
-do for[j=0:100]{
-	set output sprintf("viterbi-%d.pdf",j)
-	plot "../../epvgm.dat" ind j u 2:6 smooth unique w linespoints pt 7 ps 1 t sprintf("viterbi%d",j)
-	set output
-}
 
 #x1ÇÃÇ›ÇÉvÉçÉbÉg
 #plot "../../result1.dat" u 1 w lines t "true(x1)", "result1.dat" u 2 w lines t "observed(x1)" ,"result1.dat" u 3 w lines t "PF[MMSE](x1)"
