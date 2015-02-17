@@ -1084,7 +1084,7 @@ int ParticleFilterMat::GetClusteringEstimation3(std::vector< std::vector<PStateM
   return num_of_cluster;
 }
 
-double ParticleFilterMat::density(PStateMat x, PStateMat xhat){
+inline double ParticleFilterMat::density(PStateMat x, PStateMat xhat){
   double f = exp(-pow(x.state_.at<double>(0,0) - xhat.state_.at<double>(0,0), 2)
 				 /(2.0*ProcessNoiseCov_.at<double>(0,0)));
   return f;
@@ -1114,7 +1114,7 @@ int ParticleFilterMat::KernelDensityEstimation( cv::Mat &est,
   std::vector<int> indices;
   static PStateMat pstatex(dimX_, 0);
   //static std::vector<PStateMat> new_state(samples_, pstatex);
-   static cv::Mat obs_new = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
+  static cv::Mat obs_new = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
   static cv::Mat rnd_num = cv::Mat::zeros(observed.rows, observed.cols, CV_64F);
   static std::vector<double> new_likelihoods(samples_, 0);
   double sum = 0;

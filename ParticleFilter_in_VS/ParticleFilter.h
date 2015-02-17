@@ -109,7 +109,7 @@ class ParticleFilterMat
 														 const cv::Mat &cov,
 														 const cv::Mat &mean),
 							   double sigma, double cls_th);
-  double density(PStateMat x, PStateMat xhat);
+  inline double density(PStateMat x, PStateMat xhat);
   int KernelDensityEstimation( cv::Mat &est,
 							   std::vector<double> &densities,
 							   std::vector<double> &maps,

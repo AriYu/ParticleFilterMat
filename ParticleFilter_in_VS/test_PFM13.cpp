@@ -28,7 +28,7 @@
 
 #define NumOfIterate 5
 #define NumOfParticle 1000
-#define ESSth 45
+#define ESSth 5
 using namespace std;
 using namespace cv;
 
@@ -47,13 +47,13 @@ const int observation_dimension = 3;
 //! rnd		: process noise
 void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat &rnd)
 {
-  x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
-    + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
-    +  8.0 * cos(1.2*k)
-    + rnd.at<double>(0, 0);
+  // x.at<double>(0, 0) =  0.5*xpre.at<double>(0,0) 
+  //   + 25.0*(xpre.at<double>(0,0) / (1.0 + (xpre.at<double>(0,0)*xpre.at<double>(0,0)))) 
+  //   +  8.0 * cos(1.2*k)
+  //   + rnd.at<double>(0, 0);
   //x.at<double>(0,0) = xpre.at<double>(0,0) + 3.0 * cos(xpre.at<double>(0,0)/10) + rnd.at<double>(0,0);
   //x.at<double>(0,0) = 3.0 * cos(xpre.at<double>(0,0)) + rnd.at<double>(0,0);
-  // x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
+  x.at<double>(0,0) = xpre.at<double>(0,0) + rnd.at<double>(0,0);
 }
 
 
@@ -63,13 +63,13 @@ void process(cv::Mat &x, const cv::Mat &xpre, const double &input, const cv::Mat
 //! x : èÛë‘ÉxÉNÉgÉã
 void observation(cv::Mat &z, const cv::Mat &x, const cv::Mat &rnd)
 {
-  z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
-      + rnd.at<double>(0, 0);
+  // z.at<double>(0, 0) = (x.at<double>(0, 0) * x.at<double>(0, 0)) / 20.0 
+  //     + rnd.at<double>(0, 0);
   // z.at<double>(0, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(0,0);
   // z.at<double>(1, 0) = pow(x.at<double>(0, 0),3.0) + rnd.at<double>(1,0);
-  // for(int i = 0; i < observation_dimension; i++){
-  // 	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
-  // }
+  for(int i = 0; i < observation_dimension; i++){
+  	z.at<double>(i, 0) = x.at<double>(0, 0) + rnd.at<double>(i,0);
+  }
   // z.at<double>(1, 0) = x.at<double>(0, 0) + rnd.at<double>(1,0);
 }
 
@@ -85,20 +85,20 @@ double Obs_likelihood(const cv::Mat &z, const cv::Mat &zhat, const cv::Mat &cov,
 	double sum = 0;
 	std::vector<double> errors(observation_dimension, 0.0);
 	std::vector<double> tmps(observation_dimension, 0.0);
-	// for(int i = 0; i< observation_dimension; i++){
-	//   errors[i] = z.at<double>(i, 0) - zhat.at<double>(i, 0) - mean.at<double>(i, 0);
-	//   tmps[i] = -(errors[i]*errors[i]) / (2.0 * cov.at<double>(i, 0));
-	//   //sum = logsumexp(sum, tmps[i], (i == 0));
-	//   sum += exp(tmps[i]);
-	// }
-	// sum = log(sum);
-	for(int i = 0; i< 1; i++){
+	for(int i = 0; i< observation_dimension; i++){
 	  errors[i] = z.at<double>(i, 0) - zhat.at<double>(i, 0) - mean.at<double>(i, 0);
 	  tmps[i] = -(errors[i]*errors[i]) / (2.0 * cov.at<double>(i, 0));
 	  //sum = logsumexp(sum, tmps[i], (i == 0));
 	  sum += exp(tmps[i]);
 	}
 	sum = log(sum);
+	// for(int i = 0; i< 1; i++){
+	//   errors[i] = z.at<double>(i, 0) - zhat.at<double>(i, 0) - mean.at<double>(i, 0);
+	//   tmps[i] = -(errors[i]*errors[i]) / (2.0 * cov.at<double>(i, 0));
+	//   //sum = logsumexp(sum, tmps[i], (i == 0));
+	//   sum += exp(tmps[i]);
+	// }
+	// sum = log(sum);
 
 	//sum = log(exp(tmp1) + exp(tmp2));
 	
@@ -135,7 +135,7 @@ int main(int argc,char *argv[]) {
   // ==============================
   // Set Process Noise
   // ==============================
-  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 10.0); // random walk.
+  cv::Mat ProcessCov        = (cv::Mat_<double>(1, 1) << 1.0); // random walk.
   std::cout << "ProcessCov  = " << ProcessCov << std::endl << std::endl;
   cv::Mat ProcessMean       = (cv::Mat_<double>(1, 1) << 0.0);
   std::cout << "ProcessMean = " << ProcessMean << std::endl << std::endl;
@@ -144,7 +144,7 @@ int main(int argc,char *argv[]) {
   // Set Observation Noise
   // ==============================
   cv::Mat ObsCov        = (cv::Mat_<double>(observation_dimension, 1) 
-						   << 1.0, 2.0, 2.0); // three sensor model.
+						   << 2.0, 2.0, 2.0); // three sensor model.
   std::cout << "ObsCov  = " << ObsCov << std::endl << std::endl;
   cv::Mat ObsMean       = (cv::Mat_<double>(observation_dimension, 1) 
 						   << 0.0, 0.0, 0.0); // Five sensor model.
@@ -267,6 +267,9 @@ int main(int argc,char *argv[]) {
 	// normal_distribution<> obsNoiseGen5(ObsMean.at<double>(4, 0)
 	// 								  , sqrt(ObsCov.at<double>(4, 0)));
 	
+	// For Kernel Density Estimation
+	std::vector< double > densities(pfm.samples_, 0.0);
+	std::vector< double > maps(pfm.samples_, 0.0);
 
 	double input = 0.0;
 	MeasureTime timer;
@@ -322,12 +325,8 @@ int main(int argc,char *argv[]) {
 	  //Mat predictionKernelEst = Mat::zeros(state_dimension, 1, CV_64F);
 	  Mat predictionMeanshiftEst = Mat::zeros(state_dimension, 1, CV_64F);
 	  timer.start();
-	  std::vector< double > densities(pfm.samples_, 0.0);
-	  std::vector< double > maps(pfm.samples_, 0.0);
 	  pfm.KernelDensityEstimation(predictionMeanshiftEst, densities, maps,process, 
 								  observation, Trans_likelihood, Obs_likelihood, measurement);
- 
- 
 	  timer.stop();
 	  std::cout << "Kernel time  :" << timer.getElapsedTime() << std::endl;
 
